@@ -1,45 +1,52 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-char[] digits = "123456789".ToCharArray();
+Regex gameID = new Regex(@"^Game (\d+):");
+Regex redAmt = new Regex(@"(\d+) red");
+Regex greenAmt = new Regex(@"(\d+) green");
+Regex blueAmt = new Regex(@"(\d+) blue");
 
-string[] numbers = new[]
+
+(int id, int red, int green, int blue) toGame(string line)
 {
-    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"
-};
+    var gameIDMatch = gameID.Match(line);
+    int redMax = getMax(line, redAmt);
+    int greenMax = getMax(line, greenAmt);
+    int blueMax = getMax(line, blueAmt);
 
-Regex numlike = MyRegex();
-Regex numlikeLast = MyRegex1();
+    return (
+        id: int.Parse(gameIDMatch.Groups[1].ValueSpan),
+        red: redMax,
+        green: greenMax,
+        blue: blueMax
+    );
 
-int getNum(string line)
-{
-    var firstMatch = numlike.Match(line);
-    var lastMatch = numlikeLast.Match(line);
-
-    return convertNum(firstMatch.Value) * 10
-        + convertNum(lastMatch.Value);
-}
-
-int convertNum(string word) {
-    int num = Array.IndexOf(numbers, word);
-    if (num < 0) {
-        int digit = (int)Char.GetNumericValue(word[0]);
-        Debug.Assert(digit >= 0);
-        return digit;
+    static int getMax(string line, Regex regex)
+    {
+        return regex.Matches(line).Select(m => int.Parse(m.Groups[1].ValueSpan)).Max();
     }
-    return num;
 }
 
-Run("testp1", 142);
-Run("test", 360);
+Func<(int id, int red, int green, int blue), bool> possibleGame(int red, int green, int blue) {
+    return input => {
+        return input.red <= red 
+            && input.green <= green
+            && input.blue <= blue;
+    };
+}
+
+// Run("testp1", 142);
+Run("test", 8);
 Run("input");
 
 void Run(string type, int? expected = null)
 {
-    string[] input = File.ReadAllLines($"{type}-d1.txt");
+    string[] input = File.ReadAllLines($"{type}-d2.txt");
 
-    var output = input.Select(getNum).Sum();
+    var output = input.Select(toGame).Where(possibleGame(red: 12, green: 13, blue: 14)).Sum(game => game.id);
 
     Console.Write($"{type}:\t{output}");
 
@@ -48,16 +55,4 @@ void Run(string type, int? expected = null)
         Debug.Assert(expected == output);
     }
     Console.WriteLine();
-}
-
-partial class Program
-{
-    [GeneratedRegex(@"(one|two|three|four|five|six|seven|eight|nine|\d)")]
-    private static partial Regex MyRegex();
-}
-
-partial class Program
-{
-    [GeneratedRegex(@"(one|two|three|four|five|six|seven|eight|nine|\d)", RegexOptions.RightToLeft)]
-    private static partial Regex MyRegex1();
 }
