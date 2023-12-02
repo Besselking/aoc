@@ -30,23 +30,19 @@ Regex blueAmt = new Regex(@"(\d+) blue");
     }
 }
 
-Func<(int id, int red, int green, int blue), bool> possibleGame(int red, int green, int blue) {
-    return input => {
-        return input.red <= red 
-            && input.green <= green
-            && input.blue <= blue;
-    };
+int power((int id, int red, int green, int blue) game) {
+    return game.red * game.green * game.blue;
 }
 
 // Run("testp1", 142);
-Run("test", 8);
+Run("test", 2286);
 Run("input");
 
 void Run(string type, int? expected = null)
 {
     string[] input = File.ReadAllLines($"{type}-d2.txt");
 
-    var output = input.Select(toGame).Where(possibleGame(red: 12, green: 13, blue: 14)).Sum(game => game.id);
+    var output = input.Select(toGame).Select(power).Sum();
 
     Console.Write($"{type}:\t{output}");
 
