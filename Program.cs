@@ -29,7 +29,7 @@ public partial class Program
     public static void Main()
     {
         // Run("testp1", 142);
-        Run("test", 4361);
+        Run("test", 467835);
         Run("input");
     }
 
@@ -50,9 +50,11 @@ public partial class Program
                             .Concat(GetParts(pois, symbol, -1))
                             .Concat(GetParts(pois, symbol, 1))
                             .Select(p => p.Val!.Value)
-                            .Distinct();
+                            .ToList();
 
-                output += parts.Sum();
+                if (parts.Count == 2) {
+                    output += parts[0] * parts[1];
+                }
 
                 Console.WriteLine(String.Join(", ", parts));
             }
@@ -76,6 +78,6 @@ public partial class Program
                 && symbol.Xt >= p.Xh - 1);
     }
 
-    [GeneratedRegex(@"\d+|[^.\n]")]
+    [GeneratedRegex(@"\d+|\*")]
     private static partial Regex PoiRegex();
 }
