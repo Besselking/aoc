@@ -2,3 +2,7 @@ bin/
 .vscode/
 obj/
 *.txt
+.idea/
+.vs/
+aoc-trace
+*.speedscope.json
