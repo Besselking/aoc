@@ -1,5 +1,7 @@
-﻿using System.Collections.Frozen;
+﻿using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 
 namespace aoc;
@@ -9,7 +11,7 @@ public static partial class Program
     public static void Main()
     {
         // Run("testp1", 142);
-        Run("test", 35);
+        // Run("test", 46);
         Run("input");
     }
 
@@ -34,18 +36,18 @@ public static partial class Program
     private static long GetOutput(ReadOnlySpan<string> input)
     {
         // seeds: 79 14 55 13
-        List<long> seeds = [];
+        List<long> seedRanges = [];
         var seedsLine = input[0].AsSpan("seeds: ".Length);
         foreach (Range seedRange in seedsLine.Split(' '))
         {
-            seeds.Add(long.Parse(seedsLine[seedRange]));
+            seedRanges.Add(long.Parse(seedsLine[seedRange]));
         }
 
         input = input[2..];
         Debug.Assert(input[0] == "seed-to-soil map:");
         input = input[1..];
 
-        List<Mapping> seedToSoilMap = [];
+        List<Mapping> seedToSoil = [];
 
         int i;
         for (i = 0; i < input.Length && input[i] != ""; i++)
@@ -53,132 +55,194 @@ public static partial class Program
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            seedToSoilMap.Add(item);
+            seedToSoil.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "soil-to-fertilizer map:");
         input = input[1..];
 
-        List<Mapping> soilToFertilizerMap = [];
+        List<Mapping> soilToFertilizer = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            soilToFertilizerMap.Add(item);
+            soilToFertilizer.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "fertilizer-to-water map:");
         input = input[1..];
 
-        List<Mapping> fertilizerToWaterMap = [];
+        List<Mapping> fertilizerToWater = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            fertilizerToWaterMap.Add(item);
+            fertilizerToWater.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "water-to-light map:");
         input = input[1..];
 
-        List<Mapping> waterToLightMap = [];
+        List<Mapping> waterToLight = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            waterToLightMap.Add(item);
+            waterToLight.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "light-to-temperature map:");
         input = input[1..];
 
-        List<Mapping> lightToTempMap = [];
+        List<Mapping> lightToTemp = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            lightToTempMap.Add(item);
+            lightToTemp.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "temperature-to-humidity map:");
         input = input[1..];
 
-        List<Mapping> tempToHumidMap = [];
+        List<Mapping> tempToHumid = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            tempToHumidMap.Add(item);
+            tempToHumid.Add(item);
         }
 
         input = input[(i + 1)..];
         Debug.Assert(input[0] == "humidity-to-location map:");
         input = input[1..];
 
-        List<Mapping> humidToLocMap = [];
+        List<Mapping> humidToLoc = [];
 
         for (i = 0; i < input.Length && input[i] != ""; i++)
         {
             var mapLine = input[i].AsSpan();
             Mapping item = GetMapping(mapLine, i);
 
-            humidToLocMap.Add(item);
+            humidToLoc.Add(item);
         }
 
-        seedToSoilMap.Sort();
-        soilToFertilizerMap.Sort();
-        fertilizerToWaterMap.Sort();
-        waterToLightMap.Sort();
-        lightToTempMap.Sort();
-        tempToHumidMap.Sort();
-        humidToLocMap.Sort();
+        Mapping[] seedToSoilMap = [.. seedToSoil.Order()];
+        Mapping[] soilToFertilizerMap = [.. soilToFertilizer.Order()];
+        Mapping[] fertilizerToWaterMap = [.. fertilizerToWater.Order()];
+        Mapping[] waterToLightMap = [.. waterToLight.Order()];
+        Mapping[] lightToTempMap = [.. lightToTemp.Order()];
+        Mapping[] tempToHumidMap = [.. tempToHumid.Order()];
+        Mapping[] humidToLocMap = [.. humidToLoc.Order()];
+
+        Mapping[][] maps = 
+            [ seedToSoilMap
+            , soilToFertilizerMap
+            , fertilizerToWaterMap
+            , waterToLightMap
+            , lightToTempMap
+            , tempToHumidMap
+            , humidToLocMap
+            ];
+
 
         long minLoc = long.MaxValue;
-        foreach (long seed in seeds)
-        {
-            long soil = GetDest(seedToSoilMap, seed);
-            long fert = GetDest(soilToFertilizerMap, soil);
-            long water = GetDest(fertilizerToWaterMap, fert);
-            long light = GetDest(waterToLightMap, water);
-            long temp = GetDest(lightToTempMap, light);
-            long humid = GetDest(tempToHumidMap, temp);
-            long loc = GetDest(humidToLocMap, humid);
 
-            Console.WriteLine($"Seed {seed}, soil {soil}, fertilizer {fert}, water {water}, light {light}, temperature {temp}, humidity {humid}, location {loc}.");
+        var seeds = seedRanges.Chunk(2).Select(range => (range[0], range[0] + range[1] - 1)).ToArray();
 
-            minLoc = long.Min(minLoc, loc);
-        }
+        var lowestlocdest = humidToLocMap.OrderBy(map => map.DestOffset).First();
+        Console.WriteLine("locs");
+        Console.WriteLine(lowestlocdest);
+
+        var pothumid = tempToHumidMap.Where(map => map.DestOffset < lowestlocdest.SrcEnd
+                                                && map.DestOffset >= lowestlocdest.SrcStart).ToList();
+        
+        Console.WriteLine("humids");
+        pothumid.ForEach(Console.WriteLine);
+
+        var pottemp = lightToTemp.Where(map => pothumid.Any(
+                                            humid => map.DestOffset < humid.SrcEnd
+                                                  && map.DestOffset >= humid.SrcStart)).ToList();
+        
+        Console.WriteLine("temp");
+        pottemp.ForEach(Console.WriteLine);
+
+        var potlight = waterToLight.Where(map => pothumid.Any(
+                                            humid => map.DestOffset < humid.SrcEnd
+                                                  && map.DestOffset >= humid.SrcStart)).ToList();
+        
+        Console.WriteLine("light");
+        potlight.ForEach(Console.WriteLine);
+
+        var potwater = fertilizerToWater.Where(map => potlight.Any(
+                                            humid => map.DestOffset < humid.SrcEnd
+                                                  && map.DestOffset >= humid.SrcStart)).ToList();
+        
+        Console.WriteLine("water");
+        potwater.ForEach(Console.WriteLine);
+
+        var potfert = soilToFertilizer.Where(map => potwater.Any(
+                                            humid => map.DestOffset < humid.SrcEnd
+                                                  && map.DestOffset >= humid.SrcStart)).ToList();
+        
+        Console.WriteLine("fert");
+        potfert.ForEach(Console.WriteLine);
+
+        var potsoil = seedToSoilMap.Where(map => potfert.Any(
+                                            humid => map.DestOffset < humid.SrcEnd
+                                                  && map.DestOffset >= humid.SrcStart)).ToList();
+        
+        Console.WriteLine("soil");
+        potsoil.ForEach(Console.WriteLine);
+
+        var potseeds = seeds.Where(seed => pottemp.Any(
+            soil => soil.SrcEnd < seed.Item1 && soil.SrcStart > seed.Item2
+        )).ToList();
+
+        Console.WriteLine("seeds");
+        potseeds.ForEach(seed => Console.WriteLine($"seed: {seed.Item1}, {seed.Item2}"));
 
         return minLoc;
     }
 
-    private static long GetDest(List<Mapping> mapping, long src)
+    private static long GetDest(Mapping[] mapping, long src)
     {
         long dest = src;
-        Mapping? map = mapping.FirstOrDefault(
-            map => map.SrcStart <= src
-                && map.SrcStart + map.RangeLength > src);
+        Mapping? map = GetMap(mapping, src);
 
         if (map is not null)
         {
             dest = map.DestOffset + (src - map.SrcStart);
         }
         return dest;
+    }
+
+    private static Mapping? GetMap(ReadOnlySpan<Mapping> mapping, long src)
+    {
+        if (mapping.IsEmpty) return null;
+
+        int idx = mapping.Length / 2;
+        Mapping map = mapping[idx];
+
+        if (src < map.SrcStart) return GetMap(mapping[..idx], src);
+        if (src > map.SrcEnd) return GetMap(mapping[(idx + 1)..], src);
+
+        return map;
     }
 
     private static Mapping GetMapping(ReadOnlySpan<char> mapLine, int i)
@@ -193,11 +257,14 @@ public static partial class Program
 
         long rangeLength = long.Parse(mapLine[(nextSplit + 1)..]);
 
-        Mapping item = new Mapping(srcStart, rangeLength, destStart);
+        Mapping item = new Mapping(srcStart, srcStart + rangeLength - 1, destStart);
         return item;
     }
 
-    private record Mapping(long SrcStart, long RangeLength, long DestOffset) 
+    private record Mapping(
+            long SrcStart,
+            long SrcEnd,
+            long DestOffset)
         : IComparable<Mapping>
         , IComparable<long>
     {
@@ -211,7 +278,7 @@ public static partial class Program
         public int CompareTo(long other)
         {
             if (other < SrcStart) return -1;
-            if (other > SrcStart + RangeLength - 1) return 1;
+            if (other > SrcEnd) return 1;
             return 0;
         }
     }
