@@ -7,7 +7,7 @@ public static partial class Program
     public static void Main()
     {
         // Run("testp1", 142);
-        Run("test", 11);
+        Run("test", 31);
         Run("input");
     }
 
@@ -46,9 +46,8 @@ public static partial class Program
             right.Add(rightNum);
         }
 
-        left.Sort();
-        right.Sort();
+        var hist = right.GroupBy(x => x).ToDictionary(x => x.Key, x => x.LongCount());
 
-        return left.Zip(right, (l, r) => Math.Abs(r - l)).Sum();
+        return left.Select(x => x * hist.GetValueOrDefault(x, 0)).Sum();
     }
 }
