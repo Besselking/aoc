@@ -6,8 +6,8 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 2);
-        Run("input", 483);
+        Run("test", 4);
+        Run("input");
     }
 
     private static void Run(string type, int? expected = null)
@@ -37,23 +37,41 @@ public static partial class Program
 
         static bool IsSafe(int[] reports)
         {
-            int incline = 0;
-            int last = reports[0];
-
-            foreach (var report in reports.AsSpan(1))
+            return GetMutations(reports).Any(static reports =>
             {
-                int cmp = last - report;
-                if (incline != 0 && Math.Sign(cmp) != Math.Sign(incline)
-                    || Math.Abs(cmp) is > 3 or < 1)
+                int incline = 0;
+                int last = reports[0];
+
+                foreach (var report in reports.AsSpan(1))
                 {
-                    return false;
+                    int cmp = last - report;
+                    if (incline != 0 && Math.Sign(cmp) != Math.Sign(incline)
+                        || Math.Abs(cmp) is > 3 or < 1)
+                    {
+                        return false;
+                    }
+
+                    incline = cmp;
+                    last = report;
                 }
 
-                incline = cmp;
-                last = report;
-            }
+                return true;
+            });
+        }
+    }
 
-            return true;
+    private static IEnumerable<int[]> GetMutations(int[] reports)
+    {
+        yield return reports;
+
+
+        for (int i = 0; i < reports.Length; i++)
+        {
+            var span = reports.AsSpan();
+            var left = span[..i];
+            var right = span[(i + 1)..];
+
+            yield return [..left, ..right];
         }
     }
 }
