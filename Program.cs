@@ -6,21 +6,20 @@ public static partial class Program
 {
     public static void Main()
     {
-        // Run("testp1", 142);
-        Run("test", 31);
-        Run("input");
+        Run("test", 2);
+        Run("input", 483);
     }
 
     private static void Run(string type, int? expected = null)
     {
-        string[] input = File.ReadAllLines($"{type}-d1.txt");
+        string[] input = File.ReadAllLines($"{type}-d2.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
 
         if (expected.HasValue)
         {
-            Console.Write($"\texpected:\t{expected}");
+            Console.WriteLine($"\texpected:\t{expected}");
             Debug.Assert(expected == output);
         }
 
@@ -29,25 +28,32 @@ public static partial class Program
 
     // Implementation
 
-    private static long GetOutput(ReadOnlySpan<string> input)
+    private static long GetOutput(string[] input)
     {
-        List<long> left = new List<long>(input.Length);
-        List<long> right = new List<long>(input.Length);
+        return input
+            .Select(line => line.Split(' '))
+            .Select(report => report.Select(int.Parse).ToArray())
+            .Count(IsSafe);
 
-        foreach (ReadOnlySpan<char> line in input)
+        static bool IsSafe(int[] reports)
         {
-            var splits = line.Split("   ");
-            splits.MoveNext();
-            long leftNum = long.Parse(line[splits.Current]);
-            splits.MoveNext();
-            long rightNum = long.Parse(line[splits.Current]);
+            int incline = 0;
+            int last = reports[0];
 
-            left.Add(leftNum);
-            right.Add(rightNum);
+            foreach (var report in reports.AsSpan(1))
+            {
+                int cmp = last - report;
+                if (incline != 0 && Math.Sign(cmp) != Math.Sign(incline)
+                    || Math.Abs(cmp) is > 3 or < 1)
+                {
+                    return false;
+                }
+
+                incline = cmp;
+                last = report;
+            }
+
+            return true;
         }
-
-        var hist = right.GroupBy(x => x).ToDictionary(x => x.Key, x => x.LongCount());
-
-        return left.Select(x => x * hist.GetValueOrDefault(x, 0)).Sum();
     }
 }
