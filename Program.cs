@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace aoc;
 
@@ -6,13 +7,29 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 4);
-        Run("input");
+        // Run("test", 4);
+        Run("input", 84893551);
     }
+
+    // private static void Run(string type, int? expected = null)
+    // {
+    //     string[] input = File.ReadAllLines($"{type}-d2.txt");
+    //     var output = GetOutput(input);
+    //
+    //     Console.Write($"{type}:\t{output}");
+    //
+    //     if (expected.HasValue)
+    //     {
+    //         Console.WriteLine($"\texpected:\t{expected}");
+    //         Debug.Assert(expected == output);
+    //     }
+    //
+    //     Console.WriteLine();
+    // }
 
     private static void Run(string type, int? expected = null)
     {
-        string[] input = File.ReadAllLines($"{type}-d2.txt");
+        string input = File.ReadAllText($"{type}-d3.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -28,50 +45,41 @@ public static partial class Program
 
     // Implementation
 
-    private static long GetOutput(string[] input)
+    static long GetOutput(string input)
     {
-        return input
-            .Select(line => line.Split(' '))
-            .Select(report => report.Select(int.Parse).ToArray())
-            .Count(IsSafe);
+        Regex mulRegx = MulRegex();
 
-        static bool IsSafe(int[] reports)
+        long sum = 0;
+
+        bool doMul = true;
+
+        foreach (var match in mulRegx.Matches(input).AsEnumerable())
         {
-            return GetMutations(reports).Any(static reports =>
+            if (match.ValueSpan.Equals("do()", StringComparison.Ordinal))
             {
-                int incline = 0;
-                int last = reports[0];
+                doMul = true;
+                continue;
+            }
+            else if (match.ValueSpan.Equals("don't()", StringComparison.Ordinal))
+            {
+                doMul = false;
+                continue;
+            }
 
-                foreach (var report in reports.AsSpan(1))
-                {
-                    int cmp = last - report;
-                    if (incline != 0 && Math.Sign(cmp) != Math.Sign(incline)
-                        || Math.Abs(cmp) is > 3 or < 1)
-                    {
-                        return false;
-                    }
+            if (!doMul)
+            {
+                continue;
+            }
 
-                    incline = cmp;
-                    last = report;
-                }
+            var left = int.Parse(match.Groups[1].ValueSpan);
+            var right = int.Parse(match.Groups[2].ValueSpan);
 
-                return true;
-            });
+            sum += left * right;
         }
+
+        return sum;
     }
 
-    private static IEnumerable<int[]> GetMutations(int[] reports)
-    {
-        yield return reports;
-
-
-        for (int i = 0; i < reports.Length; i++)
-        {
-            var span = reports.AsSpan();
-            var left = span[..i];
-            var right = span[(i + 1)..];
-
-            yield return [..left, ..right];
-        }
-    }
+    [GeneratedRegex(@"(?:mul\((\d{1,3}),(\d{1,3})\))|do(?:n't)?\(\)")]
+    private static partial Regex MulRegex();
 }
