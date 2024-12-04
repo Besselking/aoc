@@ -6,7 +6,7 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 18);
+        Run("test", 9);
         Run("input");
     }
 
@@ -35,25 +35,26 @@ public static partial class Program
         char[] debugView = new char[input[0].Length];
 
         int height = input.Length;
-        for (int y = 0; y < height; y++)
+        for (int y = 1; y < height - 1; y++)
         {
-            Array.Fill(debugView, ' ', 0, debugView.Length);
-            int x = 0;
+            Array.Fill(debugView, '.', 0, debugView.Length);
+            int x = 1;
             var line = input[y].AsSpan();
             do
             {
-                var index = line[x..].IndexOf('X');
+                var index = line[x..].IndexOf('A');
                 if (index == -1) break;
                 x += index;
-                int count = FindMas(input, x, y);
-                if (count > 0)
+                if (x == line.Length - 1) break;
+                bool isMas = FindMas(input, x, y);
+                if (isMas)
                 {
-                    sum += count;
-                    debugView[x] = (char)('0' + count);
+                    sum++;
+                    debugView[x] = 'X';
                 }
 
                 x++;
-            } while (!line[x..].IsEmpty);
+            } while (!line[(x + 1)..].IsEmpty);
 
             Console.WriteLine(new string(debugView));
         }
@@ -61,70 +62,20 @@ public static partial class Program
         return sum;
     }
 
-    private static int FindMas(ReadOnlySpan<string> input, int x, int y)
+    private static bool FindMas(ReadOnlySpan<string> input, int x, int y)
     {
-        int count = 0;
+        char leftTop = input[y - 1][x - 1];
+        if (leftTop is not ('M' or 'S')) return false;
+        char rightBottom = input[y + 1][x + 1];
+        if (rightBottom is not ('M' or 'S')
+            || leftTop == rightBottom) return false;
 
-        var line = input[y].AsSpan();
-        // XMAS
-        if (line[x..].StartsWith("XMAS", StringComparison.Ordinal)) count++;
-        // SAMX
-        if (line[..x].EndsWith("SAM", StringComparison.Ordinal)) count++;
+        char rightTop = input[y - 1][x + 1];
+        if (rightTop is not ('M' or 'S')) return false;
+        char leftBottom = input[y + 1][x - 1];
+        if (leftBottom is not ('M' or 'S')
+            || rightTop == leftBottom) return false;
 
-        // X
-        // M
-        // A
-        // S
-        if (input[y..].Length > 3
-            && input[y + 1][x] == 'M'
-            && input[y + 2][x] == 'A'
-            && input[y + 3][x] == 'S') count++;
-
-        // S
-        // A
-        // M
-        // X
-        if (y >= 3
-            && input[y - 1][x] == 'M'
-            && input[y - 2][x] == 'A'
-            && input[y - 3][x] == 'S') count++;
-
-        // X
-        //  M
-        //   A
-        //    S
-        if (y + 3 < input.Length && x + 3 < input[y].Length
-                                 && input[y + 1][x + 1] == 'M'
-                                 && input[y + 2][x + 2] == 'A'
-                                 && input[y + 3][x + 3] == 'S') count++;
-
-        // S
-        //  A
-        //   M
-        //    X
-        if (y >= 3 && x >= 3
-                   && input[y - 1][x - 1] == 'M'
-                   && input[y - 2][x - 2] == 'A'
-                   && input[y - 3][x - 3] == 'S') count++;
-
-        //     X
-        //    M
-        //   A
-        //  S
-        if (y + 3 < input.Length && x >= 3
-                                 && input[y + 1][x - 1] == 'M'
-                                 && input[y + 2][x - 2] == 'A'
-                                 && input[y + 3][x - 3] == 'S') count++;
-
-        //     S
-        //    A
-        //   M
-        //  X
-        if (y >= 3 && x + 3 < input[y].Length
-                   && input[y - 1][x + 1] == 'M'
-                   && input[y - 2][x + 2] == 'A'
-                   && input[y - 3][x + 3] == 'S') count++;
-
-        return count;
+        return true;
     }
 }
