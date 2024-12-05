@@ -6,8 +6,8 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 143);
-        Run("input");
+        Run("test", 123);
+        Run("input", 6897);
     }
 
     private static void Run(string type, int? expected = null)
@@ -39,15 +39,18 @@ public static partial class Program
 
         var rules = rulesSection
             .Select(ParseRule)
-            .ToLookup(rule => rule.right, rule => rule.left);
+            .ToHashSet();
 
         var updates = updatesSection
             .Select(line => line.Split(',').Select(num => ParseByte(num)).ToArray());
 
+        var comparer = Comparer<byte>.Create((x, y)
+            => rules.Contains((x, y)) ? -1 : 1);
+
         foreach (var update in updates)
         {
             var span = update.AsSpan();
-            if (IsCorrect(span, rules))
+            if (IsFixed(span, comparer))
             {
                 sum += span[span.Length / 2];
             }
@@ -56,24 +59,20 @@ public static partial class Program
         return sum;
     }
 
-    private static bool IsCorrect(Span<byte> span, ILookup<byte, byte> rules)
+    private static bool IsFixed(Span<byte> span, Comparer<byte> comparer)
     {
-        for (var index = 0; index < span.Length - 1; index++)
-        {
-            var pagenum = span[index];
-            var deps = rules[pagenum].ToArray();
-            if (span[(index + 1)..].ContainsAny(deps))
-            {
-                return false;
-            }
-        }
+        var orig = span.ToArray();
+        // part 1
+        // Array.Sort(orig, comparer);
+        // return span.SequenceEqual(orig);
 
-        return true;
+        // part 2
+        span.Sort(comparer);
+        return !span.SequenceEqual(orig);
     }
 
     private static (byte left, byte right) ParseRule(string line)
     {
-        if (line.Length < 5) return (0, 0);
         byte left = ParseByte(line);
         byte right = ParseByte(line, 3);
         return (left, right);
