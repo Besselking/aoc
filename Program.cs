@@ -6,13 +6,13 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 9);
+        Run("test", 143);
         Run("input");
     }
 
     private static void Run(string type, int? expected = null)
     {
-        string[] input = File.ReadAllLines($"{type}-d4.txt");
+        var input = File.ReadAllLines($"{type}-d5.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -28,54 +28,59 @@ public static partial class Program
 
     // Implementation
 
-    static long GetOutput(string[] input)
+    private static long GetOutput(string[] input)
     {
         long sum = 0;
 
-        char[] debugView = new char[input[0].Length];
+        int endOfRules = Array.IndexOf(input, "");
 
-        int height = input.Length;
-        for (int y = 1; y < height - 1; y++)
+        string[] rulesSection = input[..endOfRules];
+        string[] updatesSection = input[(endOfRules + 1)..];
+
+        var rules = rulesSection
+            .Select(ParseRule)
+            .ToLookup(rule => rule.right, rule => rule.left);
+
+        var updates = updatesSection
+            .Select(line => line.Split(',').Select(num => ParseByte(num)).ToArray());
+
+        foreach (var update in updates)
         {
-            Array.Fill(debugView, '.', 0, debugView.Length);
-            int x = 1;
-            var line = input[y].AsSpan();
-            do
+            var span = update.AsSpan();
+            if (IsCorrect(span, rules))
             {
-                var index = line[x..].IndexOf('A');
-                if (index == -1) break;
-                x += index;
-                if (x == line.Length - 1) break;
-                bool isMas = FindMas(input, x, y);
-                if (isMas)
-                {
-                    sum++;
-                    debugView[x] = 'X';
-                }
-
-                x++;
-            } while (!line[(x + 1)..].IsEmpty);
-
-            Console.WriteLine(new string(debugView));
+                sum += span[span.Length / 2];
+            }
         }
 
         return sum;
     }
 
-    private static bool FindMas(ReadOnlySpan<string> input, int x, int y)
+    private static bool IsCorrect(Span<byte> span, ILookup<byte, byte> rules)
     {
-        char leftTop = input[y - 1][x - 1];
-        if (leftTop is not ('M' or 'S')) return false;
-        char rightBottom = input[y + 1][x + 1];
-        if (rightBottom is not ('M' or 'S')
-            || leftTop == rightBottom) return false;
-
-        char rightTop = input[y - 1][x + 1];
-        if (rightTop is not ('M' or 'S')) return false;
-        char leftBottom = input[y + 1][x - 1];
-        if (leftBottom is not ('M' or 'S')
-            || rightTop == leftBottom) return false;
+        for (var index = 0; index < span.Length - 1; index++)
+        {
+            var pagenum = span[index];
+            var deps = rules[pagenum].ToArray();
+            if (span[(index + 1)..].ContainsAny(deps))
+            {
+                return false;
+            }
+        }
 
         return true;
+    }
+
+    private static (byte left, byte right) ParseRule(string line)
+    {
+        if (line.Length < 5) return (0, 0);
+        byte left = ParseByte(line);
+        byte right = ParseByte(line, 3);
+        return (left, right);
+    }
+
+    private static byte ParseByte(string line, int offset = 0)
+    {
+        return (byte)((line[offset + 0] - '0') * 10 + (line[offset + 1] - '0'));
     }
 }
