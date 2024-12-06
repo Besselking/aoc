@@ -6,13 +6,13 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 123);
-        Run("input", 6897);
+        Run("test", 41);
+        Run("input");
     }
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d5.txt");
+        var input = File.ReadAllLines($"{type}-d6.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -32,54 +32,78 @@ public static partial class Program
     {
         long sum = 0;
 
-        int endOfRules = Array.IndexOf(input, "");
+        var chars = input.SelectMany(s => s).ToArray();
+        var grid = new Grid(chars, input.Length, input[0].Length);
 
-        string[] rulesSection = input[..endOfRules];
-        string[] updatesSection = input[(endOfRules + 1)..];
+        var pos = grid.IndexOf('^');
+        var dir = Dir.Up;
 
-        var rules = rulesSection
-            .Select(ParseRule)
-            .ToHashSet();
-
-        var updates = updatesSection
-            .Select(line => line.Split(',').Select(num => ParseByte(num)).ToArray());
-
-        var comparer = Comparer<byte>.Create((x, y)
-            => rules.Contains((x, y)) ? -1 : 1);
-
-        foreach (var update in updates)
+        while (true)
         {
-            var span = update.AsSpan();
-            if (IsFixed(span, comparer))
+            // Console.WriteLine(grid.ToString());
+            var next = GetNextPos(pos, dir);
+
+            if (!grid.InBounds(next))
             {
-                sum += span[span.Length / 2];
+                grid[pos] = GetMarker(dir, grid[pos]);
+                break;
+            }
+
+            char nextChar = grid[next];
+
+            if (nextChar == '#')
+            {
+                grid[pos] = GetMarker(dir, grid[pos]);
+                dir = TurnDir(dir);
+            }
+            else
+            {
+                grid[pos] = GetMarker(dir, grid[pos]);
+                pos = next;
             }
         }
 
-        return sum;
+        Console.WriteLine(grid.ToString());
+
+        return grid.CountAll("+-|");
     }
 
-    private static bool IsFixed(Span<byte> span, Comparer<byte> comparer)
+    private static char GetMarker(Dir dir, char currentTile)
     {
-        var orig = span.ToArray();
-        // part 1
-        // Array.Sort(orig, comparer);
-        // return span.SequenceEqual(orig);
+        if (currentTile != '.')
+        {
+            return '+';
+        }
 
-        // part 2
-        span.Sort(comparer);
-        return !span.SequenceEqual(orig);
+        return dir switch
+        {
+            Dir.Up or Dir.Down => '|',
+            Dir.Right or Dir.Left => '-',
+        };
     }
 
-    private static (byte left, byte right) ParseRule(string line)
+    private static Dir TurnDir(Dir dir)
     {
-        byte left = ParseByte(line);
-        byte right = ParseByte(line, 3);
-        return (left, right);
+        return (Dir)((int)(dir + 1) % 4);
     }
 
-    private static byte ParseByte(string line, int offset = 0)
+    private enum Dir
     {
-        return (byte)((line[offset + 0] - '0') * 10 + (line[offset + 1] - '0'));
+        Up,
+        Right,
+        Down,
+        Left
+    }
+
+    private static (int row, int col) GetNextPos((int row, int col) pos, Dir dir)
+    {
+        return dir switch
+        {
+            Dir.Up => (pos.row - 1, pos.col),
+            Dir.Right => (pos.row, pos.col + 1),
+            Dir.Down => (pos.row + 1, pos.col),
+            Dir.Left => (pos.row, pos.col - 1),
+            _ => throw new ArgumentOutOfRangeException(nameof(dir), dir, null)
+        };
     }
 }
