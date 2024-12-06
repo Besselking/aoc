@@ -36,18 +36,35 @@ public static partial class Program
         var copy = new char[chars.Length];
 
         int tries = 0;
-        while (tries < chars.Length)
+        while (true)
         {
-            visited.Clear();
-            chars.CopyTo(copy.AsSpan());
-            if (copy[tries] is '#' or '^')
+            if (tries == 1)
             {
-                tries++;
-                continue;
+                potPos = visited.Select(x => (x.row, x.col)).ToArray();
+            }
+            else if (tries != 0 && tries >= potPos.Length)
+            {
+                break;
             }
 
-            copy[tries++] = 'O';
+            visited.Clear();
+            chars.CopyTo(copy.AsSpan());
+
             var grid = new Grid(copy, input.Length, input[0].Length);
+
+            if (tries > 0)
+            {
+                var trialPos = potPos[tries - 1];
+                if (grid[trialPos] is '#' or '^')
+                {
+                    tries++;
+                    continue;
+                }
+
+                grid[trialPos] = 'O';
+            }
+
+            tries++;
 
             var pos = grid.IndexOf('^');
             var dir = Dir.Up;
@@ -91,6 +108,7 @@ public static partial class Program
         return sum;
     }
 
+    private static (int row, int col)[] potPos = [];
     private static HashSet<(int row, int col, Dir dir)> visited = new();
 
     private static char GetMarker(Dir dir, char currentTile)
