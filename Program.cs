@@ -6,7 +6,7 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 41);
+        Run("test", 6);
         Run("input");
     }
 
@@ -33,40 +33,65 @@ public static partial class Program
         long sum = 0;
 
         var chars = input.SelectMany(s => s).ToArray();
-        var grid = new Grid(chars, input.Length, input[0].Length);
+        var copy = new char[chars.Length];
 
-        var pos = grid.IndexOf('^');
-        var dir = Dir.Up;
-
-        while (true)
+        int tries = 0;
+        while (tries < chars.Length)
         {
-            // Console.WriteLine(grid.ToString());
-            var next = GetNextPos(pos, dir);
-
-            if (!grid.InBounds(next))
+            visited.Clear();
+            chars.CopyTo(copy.AsSpan());
+            if (copy[tries] is '#' or '^')
             {
-                grid[pos] = GetMarker(dir, grid[pos]);
-                break;
+                tries++;
+                continue;
             }
 
-            char nextChar = grid[next];
+            copy[tries++] = 'O';
+            var grid = new Grid(copy, input.Length, input[0].Length);
 
-            if (nextChar == '#')
+            var pos = grid.IndexOf('^');
+            var dir = Dir.Up;
+            bool loop = false;
+            while (true)
             {
-                grid[pos] = GetMarker(dir, grid[pos]);
-                dir = TurnDir(dir);
-            }
-            else
-            {
-                grid[pos] = GetMarker(dir, grid[pos]);
-                pos = next;
+                if (loop)
+                {
+                    sum++;
+                    break;
+                }
+
+                // Console.WriteLine(grid.ToString());
+                var next = GetNextPos(pos, dir);
+
+                if (!grid.InBounds(next))
+                {
+                    grid[pos] = GetMarker(dir, grid[pos]);
+                    break;
+                }
+
+                char nextChar = grid[next];
+
+                if (nextChar is '#' or 'O')
+                {
+                    grid[pos] = GetMarker(dir, grid[pos]);
+                    dir = TurnDir(dir);
+                }
+                else
+                {
+                    loop = !visited.Add((pos.row, pos.col, dir));
+                    grid[pos] = GetMarker(dir, grid[pos]);
+                    pos = next;
+                }
             }
         }
 
-        Console.WriteLine(grid.ToString());
+        // Console.WriteLine(grid.ToString());
 
-        return grid.CountAll("+-|");
+        // return grid.CountAll("+-|");
+        return sum;
     }
+
+    private static HashSet<(int row, int col, Dir dir)> visited = new();
 
     private static char GetMarker(Dir dir, char currentTile)
     {
