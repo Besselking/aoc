@@ -43,71 +43,42 @@ public static partial class Program
                 nums: split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray()))
             .ToArray();
 
-        foreach (var equation in equations)
+        Parallel.ForEach(equations, equation =>
         {
-            bool isValid = TestValid(equation.ans, equation.nums);
+            bool isValid = TestValid(equation.ans, 0, equation.nums);
             if (isValid)
             {
-                sum += equation.ans;
+                Interlocked.Add(ref sum, equation.ans);
             }
-        }
+        });
 
         Console.WriteLine($"total:\t{equations.Sum(eq => eq.ans)}");
 
         return sum;
     }
 
-    private static bool TestValid(long ans, int[] nums)
-    {
-        return TestAdd(ans, 0, nums)
-               || TestMul(ans, 0, nums)
-               || TestConcat(ans, 0, nums);
-    }
-
-    private static bool TestConcat(long ans, long acc, Span<int> nums)
+    private static bool TestValid(long ans, long acc, ReadOnlySpan<int> nums)
     {
         if (nums.IsEmpty) return ans == acc;
-        long conc = Concat(acc, nums[0]);
-        if (conc > ans) return false;
-
-        return TestAdd(ans, conc, nums[1..])
-               || TestMul(ans, conc, nums[1..])
-               || TestConcat(ans, conc, nums[1..]);
-    }
-
-    private static bool TestMul(long ans, long acc, Span<int> nums)
-    {
-        if (nums.IsEmpty) return ans == acc;
-
-        var mult = acc * nums[0];
-        if (mult > ans) return false;
-
-        return TestAdd(ans, mult, nums[1..])
-               || TestMul(ans, mult, nums[1..])
-               || TestConcat(ans, mult, nums[1..]);
-    }
-
-    private static bool TestAdd(long ans, long acc, Span<int> nums)
-    {
-        if (nums.IsEmpty) return ans == acc;
-        var sum = acc + nums[0];
-        if (sum > ans) return false;
-
-        return TestAdd(ans, sum, nums[1..])
-               || TestMul(ans, sum, nums[1..])
-               || TestConcat(ans, sum, nums[1..]);
+        if (acc > ans) return false;
+        return TestValid(ans, acc + nums[0], nums[1..])
+               || TestValid(ans, acc * nums[0], nums[1..])
+               || TestValid(ans, Concat(acc, nums[0]), nums[1..]);
     }
 
     private static long Concat(long a, long b)
     {
-        if (b < 10L) return 10L * a + b;
-        if (b < 100L) return 100L * a + b;
-        if (b < 1000L) return 1000L * a + b;
-        if (b < 10000L) return 10000L * a + b;
-        if (b < 100000L) return 100000L * a + b;
-        if (b < 1000000L) return 1000000L * a + b;
-        if (b < 10000000L) return 10000000L * a + b;
-        if (b < 100000000L) return 100000000L * a + b;
-        return 1000000000L * a + b;
+        return b switch
+        {
+            < 10L => 10L * a + b,
+            < 100L => 100L * a + b,
+            < 1000L => 1000L * a + b,
+            < 10000L => 10000L * a + b,
+            < 100000L => 100000L * a + b,
+            < 1000000L => 1000000L * a + b,
+            < 10000000L => 10000000L * a + b,
+            < 100000000L => 100000000L * a + b,
+            _ => 1000000000L * a + b
+        };
     }
 }
