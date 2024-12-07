@@ -6,7 +6,7 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 3749);
+        Run("test", 11387);
         Run("input");
         // 6383609732401 too low
         // 7574285277337 not
@@ -59,70 +59,55 @@ public static partial class Program
 
     private static bool TestValid(long ans, int[] nums)
     {
-        bool? valid = null;
-        valid ??= TestSlow(ans, nums);
-
-        // Console.WriteLine();
-
-        return valid ?? throw new InvalidOperationException("oof");
+        return TestAdd(ans, 0, nums)
+               || TestMul(ans, 0, nums)
+               || TestConcat(ans, 0, nums);
     }
 
-    private static bool? TestSlow(long ans, int[] nums)
+    private static bool TestConcat(long ans, long acc, Span<int> nums)
     {
-        Span<char> ops = stackalloc char[nums.Length - 1];
-        ops.Fill('+');
-        int tries = 0;
-        while (ops.Contains('+'))
-        {
-            if (tries > 0)
-            {
-                InsertMul(ops);
-            }
+        if (nums.IsEmpty) return ans == acc;
+        long conc = Concat(acc, nums[0]);
+        if (conc > ans) return false;
 
-            int i = 1;
-            long sum = nums[0];
-            foreach (var op in ops)
-            {
-                switch (op)
-                {
-                    case '+':
-                    {
-                        sum += nums[i];
-                        break;
-                    }
-                    case '*':
-                    {
-                        sum *= nums[i];
-                        break;
-                    }
-                }
-
-                i++;
-            }
-
-            if (sum == ans) return true;
-            tries++;
-        }
-
-        return false;
+        return TestAdd(ans, conc, nums[1..])
+               || TestMul(ans, conc, nums[1..])
+               || TestConcat(ans, conc, nums[1..]);
     }
 
-    private static void InsertMul(Span<char> ops)
+    private static bool TestMul(long ans, long acc, Span<int> nums)
     {
-        for (int i = 0; i < ops.Length; i++)
-        {
-            if (ops[i] == '*')
-            {
-                ops[i] = '+';
-                continue;
-            }
+        if (nums.IsEmpty) return ans == acc;
 
-            if (ops[i] == '+')
-            {
-                ops[i] = '*';
-                break;
-            }
-        }
-        // Console.WriteLine(new string(ops));
+        var mult = acc * nums[0];
+        if (mult > ans) return false;
+
+        return TestAdd(ans, mult, nums[1..])
+               || TestMul(ans, mult, nums[1..])
+               || TestConcat(ans, mult, nums[1..]);
+    }
+
+    private static bool TestAdd(long ans, long acc, Span<int> nums)
+    {
+        if (nums.IsEmpty) return ans == acc;
+        var sum = acc + nums[0];
+        if (sum > ans) return false;
+
+        return TestAdd(ans, sum, nums[1..])
+               || TestMul(ans, sum, nums[1..])
+               || TestConcat(ans, sum, nums[1..]);
+    }
+
+    private static long Concat(long a, long b)
+    {
+        if (b < 10L) return 10L * a + b;
+        if (b < 100L) return 100L * a + b;
+        if (b < 1000L) return 1000L * a + b;
+        if (b < 10000L) return 10000L * a + b;
+        if (b < 100000L) return 100000L * a + b;
+        if (b < 1000000L) return 1000000L * a + b;
+        if (b < 10000000L) return 10000000L * a + b;
+        if (b < 100000000L) return 100000000L * a + b;
+        return 1000000000L * a + b;
     }
 }
