@@ -6,13 +6,17 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 6);
+        Run("test", 3749);
         Run("input");
+        // 6383609732401 too low
+        // 7574285277337 not
+        // 7574285277337
+        // 7579994664753
     }
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d6.txt");
+        var input = File.ReadAllLines($"{type}-d7.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -32,121 +36,93 @@ public static partial class Program
     {
         long sum = 0;
 
-        var chars = input.SelectMany(s => s).ToArray();
-        var copy = new char[chars.Length];
+        var equations = input
+            .Select(line => line.Split(':'))
+            .Select(split => (
+                ans: long.Parse(split[0]),
+                nums: split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray()))
+            .ToArray();
 
-        int tries = 0;
-        while (true)
+        foreach (var equation in equations)
         {
-            if (tries == 1)
+            bool isValid = TestValid(equation.ans, equation.nums);
+            if (isValid)
             {
-                potPos = visited.Select(x => (x.row, x.col)).ToArray();
-            }
-            else if (tries != 0 && tries >= potPos.Length)
-            {
-                break;
-            }
-
-            visited.Clear();
-            chars.CopyTo(copy.AsSpan());
-
-            var grid = new Grid(copy, input.Length, input[0].Length);
-
-            if (tries > 0)
-            {
-                var trialPos = potPos[tries - 1];
-                if (grid[trialPos] is '#' or '^')
-                {
-                    tries++;
-                    continue;
-                }
-
-                grid[trialPos] = 'O';
-            }
-
-            tries++;
-
-            var pos = grid.IndexOf('^');
-            var dir = Dir.Up;
-            bool loop = false;
-            while (true)
-            {
-                if (loop)
-                {
-                    sum++;
-                    break;
-                }
-
-                // Console.WriteLine(grid.ToString());
-                var next = GetNextPos(pos, dir);
-
-                if (!grid.InBounds(next))
-                {
-                    grid[pos] = GetMarker(dir, grid[pos]);
-                    break;
-                }
-
-                char nextChar = grid[next];
-
-                if (nextChar is '#' or 'O')
-                {
-                    grid[pos] = GetMarker(dir, grid[pos]);
-                    dir = TurnDir(dir);
-                }
-                else
-                {
-                    loop = !visited.Add((pos.row, pos.col, dir));
-                    grid[pos] = GetMarker(dir, grid[pos]);
-                    pos = next;
-                }
+                sum += equation.ans;
             }
         }
 
-        // Console.WriteLine(grid.ToString());
+        Console.WriteLine($"total:\t{equations.Sum(eq => eq.ans)}");
 
-        // return grid.CountAll("+-|");
         return sum;
     }
 
-    private static (int row, int col)[] potPos = [];
-    private static HashSet<(int row, int col, Dir dir)> visited = new();
-
-    private static char GetMarker(Dir dir, char currentTile)
+    private static bool TestValid(long ans, int[] nums)
     {
-        if (currentTile != '.')
+        bool? valid = null;
+        valid ??= TestSlow(ans, nums);
+
+        // Console.WriteLine();
+
+        return valid ?? throw new InvalidOperationException("oof");
+    }
+
+    private static bool? TestSlow(long ans, int[] nums)
+    {
+        Span<char> ops = stackalloc char[nums.Length - 1];
+        ops.Fill('+');
+        int tries = 0;
+        while (ops.Contains('+'))
         {
-            return '+';
+            if (tries > 0)
+            {
+                InsertMul(ops);
+            }
+
+            int i = 1;
+            long sum = nums[0];
+            foreach (var op in ops)
+            {
+                switch (op)
+                {
+                    case '+':
+                    {
+                        sum += nums[i];
+                        break;
+                    }
+                    case '*':
+                    {
+                        sum *= nums[i];
+                        break;
+                    }
+                }
+
+                i++;
+            }
+
+            if (sum == ans) return true;
+            tries++;
         }
 
-        return dir switch
+        return false;
+    }
+
+    private static void InsertMul(Span<char> ops)
+    {
+        for (int i = 0; i < ops.Length; i++)
         {
-            Dir.Up or Dir.Down => '|',
-            Dir.Right or Dir.Left => '-',
-        };
-    }
+            if (ops[i] == '*')
+            {
+                ops[i] = '+';
+                continue;
+            }
 
-    private static Dir TurnDir(Dir dir)
-    {
-        return (Dir)((int)(dir + 1) % 4);
-    }
-
-    private enum Dir
-    {
-        Up,
-        Right,
-        Down,
-        Left
-    }
-
-    private static (int row, int col) GetNextPos((int row, int col) pos, Dir dir)
-    {
-        return dir switch
-        {
-            Dir.Up => (pos.row - 1, pos.col),
-            Dir.Right => (pos.row, pos.col + 1),
-            Dir.Down => (pos.row + 1, pos.col),
-            Dir.Left => (pos.row, pos.col - 1),
-            _ => throw new ArgumentOutOfRangeException(nameof(dir), dir, null)
-        };
+            if (ops[i] == '+')
+            {
+                ops[i] = '*';
+                break;
+            }
+        }
+        // Console.WriteLine(new string(ops));
     }
 }
