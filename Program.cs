@@ -6,7 +6,8 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 14);
+        Run("test2", 9);
+        Run("test", 34);
         Run("input");
     }
 
@@ -47,11 +48,16 @@ public static partial class Program
 
         foreach (var join in joins)
         {
-            var antinodePos = CalcAntinode(join.a.pos, join.b.pos);
+            var antinodes = CalcAntinodes(join.a.pos, join.b.pos);
 
-            if (grid.InBounds(antinodePos))
+            foreach (var antinodePos in antinodes)
             {
-                if (grid[antinodePos] is not '.') Debugger.Break();
+                if (antinodePos is (1, 8)) Debugger.Break();
+                if (!grid.InBounds(antinodePos))
+                {
+                    break;
+                }
+                // if (grid[antinodePos] is not '.') Debugger.Break();
 
                 grid[antinodePos] = '#';
             }
@@ -62,10 +68,15 @@ public static partial class Program
         return grid.Count('#');
     }
 
-    private static (int row, int col) CalcAntinode((int row, int col) a, (int row, int col) b)
+    private static IEnumerable<(int row, int col)> CalcAntinodes((int row, int col) a, (int row, int col) b)
     {
         var distance = (row: (b.row - a.row), col: (b.col - a.col));
-        var antinode = (row: b.row + distance.row, col: b.col + distance.col);
-        return (antinode.row, antinode.col);
+        var antinode = b;
+        yield return antinode;
+        while (true)
+        {
+            antinode = (row: antinode.row + distance.row, col: antinode.col + distance.col);
+            yield return (antinode.row, antinode.col);
+        }
     }
 }
