@@ -6,17 +6,13 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 11387);
+        Run("test", 14);
         Run("input");
-        // 6383609732401 too low
-        // 7574285277337 not
-        // 7574285277337
-        // 7579994664753
     }
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d7.txt");
+        var input = File.ReadAllLines($"{type}-d8.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -36,49 +32,40 @@ public static partial class Program
     {
         long sum = 0;
 
-        var equations = input
-            .Select(line => line.Split(':'))
-            .Select(split => (
-                ans: long.Parse(split[0]),
-                nums: split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray()))
+        int rows = input.Length;
+        int cols = input[0].Length;
+        Grid grid = new(input.SelectMany(line => line).ToArray(), rows, cols);
+
+        var antennas = grid.IndexesOfExcept('.');
+
+        var joins = antennas.Join(antennas,
+                antenna => antenna.item,
+                antenna => antenna.item,
+                (a, b) => (a, b))
+            .Where(pair => pair.a.pos != pair.b.pos)
             .ToArray();
 
-        Parallel.ForEach(equations, equation =>
+        foreach (var join in joins)
         {
-            bool isValid = TestValid(equation.ans, 0, equation.nums);
-            if (isValid)
+            var antinodePos = CalcAntinode(join.a.pos, join.b.pos);
+
+            if (grid.InBounds(antinodePos))
             {
-                Interlocked.Add(ref sum, equation.ans);
+                if (grid[antinodePos] is not '.') Debugger.Break();
+
+                grid[antinodePos] = '#';
             }
-        });
+        }
 
-        Console.WriteLine($"total:\t{equations.Sum(eq => eq.ans)}");
+        Console.WriteLine(grid.ToString());
 
-        return sum;
+        return grid.Count('#');
     }
 
-    private static bool TestValid(long ans, long acc, ReadOnlySpan<int> nums)
+    private static (int row, int col) CalcAntinode((int row, int col) a, (int row, int col) b)
     {
-        if (nums.IsEmpty) return ans == acc;
-        if (acc > ans) return false;
-        return TestValid(ans, acc + nums[0], nums[1..])
-               || TestValid(ans, acc * nums[0], nums[1..])
-               || TestValid(ans, Concat(acc, nums[0]), nums[1..]);
-    }
-
-    private static long Concat(long a, long b)
-    {
-        return b switch
-        {
-            < 10L => 10L * a + b,
-            < 100L => 100L * a + b,
-            < 1000L => 1000L * a + b,
-            < 10000L => 10000L * a + b,
-            < 100000L => 100000L * a + b,
-            < 1000000L => 1000000L * a + b,
-            < 10000000L => 10000000L * a + b,
-            < 100000000L => 100000000L * a + b,
-            _ => 1000000000L * a + b
-        };
+        var distance = (row: (b.row - a.row), col: (b.col - a.col));
+        var antinode = (row: b.row + distance.row, col: b.col + distance.col);
+        return (antinode.row, antinode.col);
     }
 }

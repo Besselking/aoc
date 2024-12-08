@@ -30,6 +30,11 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
     public (int row, int col) IndexOf(char item)
     {
         int globalIndex = GlobalIndexOf(item);
+        return ToIndex(globalIndex);
+    }
+
+    private (int, int) ToIndex(int globalIndex)
+    {
         return (globalIndex / rows, globalIndex % cols);
     }
 
@@ -44,6 +49,36 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
         }
 
         return sum;
+    }
+
+    public (int row, int col)[] IndexesOf(char item)
+    {
+        List<(int row, int col)> indexes = new List<(int row, int col)>();
+        int last = 0;
+        int index;
+        while ((index = _grid[last..].IndexOf(item)) != -1)
+        {
+            index += last;
+            indexes.Add(ToIndex(index));
+            last = index + 1;
+        }
+
+        return indexes.ToArray();
+    }
+
+    public (char item, (int row, int col) pos)[] IndexesOfExcept(char item)
+    {
+        List<(char item, (int row, int col))> indexes = [];
+        int last = 0;
+        int index;
+        while ((index = _grid[last..].IndexOfAnyExcept(item)) != -1)
+        {
+            index += last;
+            indexes.Add((_grid[index], ToIndex(index)));
+            last = index + 1;
+        }
+
+        return indexes.ToArray();
     }
 
     public bool InBounds((int row, int col) next)
