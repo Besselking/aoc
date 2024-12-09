@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 
 namespace aoc;
 
@@ -6,14 +7,14 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test2", 9);
-        Run("test", 34);
+        Run("test2", 60);
+        Run("test", 1928);
         Run("input");
     }
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d8.txt");
+        var input = File.ReadAllLines($"{type}-d9.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -33,50 +34,69 @@ public static partial class Program
     {
         long sum = 0;
 
-        int rows = input.Length;
-        int cols = input[0].Length;
-        Grid grid = new(input.SelectMany(line => line).ToArray(), rows, cols);
+        int[] blockSizes = input[0].ToCharArray().Select(c => c - '0').ToArray();
 
-        var antennas = grid.IndexesOfExcept('.');
+        int[] diskBlocks = new int[blockSizes.Sum()];
 
-        var joins = antennas.Join(antennas,
-                antenna => antenna.item,
-                antenna => antenna.item,
-                (a, b) => (a, b))
-            .Where(pair => pair.a.pos != pair.b.pos)
-            .ToArray();
-
-        foreach (var join in joins)
+        int index = 0;
+        int fileIndex = 0;
+        bool file = true;
+        Span<int> diskBlocksSpan = diskBlocks.AsSpan();
+        foreach (int blockSize in blockSizes)
         {
-            var antinodes = CalcAntinodes(join.a.pos, join.b.pos);
-
-            foreach (var antinodePos in antinodes)
+            int fill;
+            if (file)
             {
-                if (antinodePos is (1, 8)) Debugger.Break();
-                if (!grid.InBounds(antinodePos))
-                {
-                    break;
-                }
-                // if (grid[antinodePos] is not '.') Debugger.Break();
-
-                grid[antinodePos] = '#';
+                fill = fileIndex;
+                fileIndex++;
+                file = false;
             }
+            else
+            {
+                fill = -1;
+                file = true;
+            }
+
+            diskBlocksSpan.Slice(index, blockSize).Fill(fill);
+            index += blockSize;
         }
 
-        Console.WriteLine(grid.ToString());
+        var result = FillFileIds(diskBlocks);
+        StringBuilder sb = new StringBuilder(diskBlocksSpan.Length * 2);
+        int blockPos = 0;
+        foreach (var item in result)
+        {
+            sum += blockPos * item;
+            blockPos++;
+            sb.Append(item).Append(',');
+        }
 
-        return grid.Count('#');
+        Console.WriteLine(sb);
+
+        return sum;
     }
 
-    private static IEnumerable<(int row, int col)> CalcAntinodes((int row, int col) a, (int row, int col) b)
+    static IEnumerable<int> FillFileIds(int[] diskBlocks)
     {
-        var distance = (row: (b.row - a.row), col: (b.col - a.col));
-        var antinode = b;
-        yield return antinode;
-        while (true)
+        int left = 0;
+        int right = diskBlocks.Length;
+        while (left < right)
         {
-            antinode = (row: antinode.row + distance.row, col: antinode.col + distance.col);
-            yield return (antinode.row, antinode.col);
+            int leftBlock = diskBlocks[left];
+            if (leftBlock is -1)
+            {
+                Span<int> span = diskBlocks.AsSpan();
+                int nextFill = span[..right].LastIndexOfAnyExcept(-1);
+                if (nextFill <= left) yield break;
+                yield return diskBlocks[nextFill];
+                right = nextFill;
+            }
+            else
+            {
+                yield return diskBlocks[left];
+            }
+
+            left++;
         }
     }
 }
