@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 
 namespace aoc;
 
@@ -7,9 +6,11 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test2", 60);
-        Run("test", 1928);
+        // Run("test2", 60);
+        Run("test", 2858);
         Run("input");
+
+        // 6415163624282
     }
 
     private static void Run(string type, int? expected = null)
@@ -48,6 +49,7 @@ public static partial class Program
             if (file)
             {
                 fill = fileIndex;
+                ToMoveFiles.Push(fileIndex);
                 fileIndex++;
                 file = false;
             }
@@ -61,42 +63,42 @@ public static partial class Program
             index += blockSize;
         }
 
-        var result = FillFileIds(diskBlocks);
-        StringBuilder sb = new StringBuilder(diskBlocksSpan.Length * 2);
-        int blockPos = 0;
-        foreach (var item in result)
+        Span<int> holeSpan = stackalloc int[9];
+        holeSpan.Fill(-1);
+        while (ToMoveFiles.TryPop(out int toMoveFile))
         {
-            sum += blockPos * item;
-            blockPos++;
-            sb.Append(item).Append(',');
+            int startFile = diskBlocksSpan.IndexOf(toMoveFile);
+            int endFile = diskBlocksSpan.LastIndexOf(toMoveFile) + 1;
+            int fileSize = endFile - startFile;
+            int holeIndex = diskBlocksSpan.IndexOf(holeSpan[..fileSize]);
+            if (holeIndex == -1 || holeIndex > startFile) continue;
+
+            Range fillRange = startFile..endFile;
+            diskBlocksSpan[fillRange].CopyTo(diskBlocksSpan[holeIndex..]);
+            diskBlocksSpan[fillRange].Fill(-1);
         }
 
-        Console.WriteLine(sb);
+        // StringBuilder sb = new StringBuilder();
+        int blockIndex = 0;
+        foreach (var fileId in diskBlocksSpan)
+        {
+            if (fileId != -1)
+            {
+                sum += blockIndex * fileId;
+                // sb.Append(fileId);
+            }
+            else
+            {
+                // sb.Append('.');
+            }
+
+            blockIndex++;
+        }
+
+        // Console.WriteLine(sb);
 
         return sum;
     }
 
-    static IEnumerable<int> FillFileIds(int[] diskBlocks)
-    {
-        int left = 0;
-        int right = diskBlocks.Length;
-        while (left < right)
-        {
-            int leftBlock = diskBlocks[left];
-            if (leftBlock is -1)
-            {
-                Span<int> span = diskBlocks.AsSpan();
-                int nextFill = span[..right].LastIndexOfAnyExcept(-1);
-                if (nextFill <= left) yield break;
-                yield return diskBlocks[nextFill];
-                right = nextFill;
-            }
-            else
-            {
-                yield return diskBlocks[left];
-            }
-
-            left++;
-        }
-    }
+    private static readonly Stack<int> ToMoveFiles = [];
 }
