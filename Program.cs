@@ -67,15 +67,13 @@ public static partial class Program
         holeSpan.Fill(-1);
         while (ToMoveFiles.TryPop(out int toMoveFile))
         {
-            int startFile = diskBlocksSpan.IndexOf(toMoveFile);
-            int endFile = diskBlocksSpan.LastIndexOf(toMoveFile) + 1;
-            int fileSize = endFile - startFile;
+            Range fileRange = Utils.RangeOf(diskBlocksSpan, toMoveFile);
+            int fileSize = fileRange.GetLength();
             int holeIndex = diskBlocksSpan.IndexOf(holeSpan[..fileSize]);
-            if (holeIndex == -1 || holeIndex > startFile) continue;
+            if (holeIndex == -1 || holeIndex > fileRange.Start.Value) continue;
 
-            Range fillRange = startFile..endFile;
-            diskBlocksSpan[fillRange].CopyTo(diskBlocksSpan[holeIndex..]);
-            diskBlocksSpan[fillRange].Fill(-1);
+            diskBlocksSpan[fileRange].CopyTo(diskBlocksSpan[holeIndex..]);
+            diskBlocksSpan[fileRange].Fill(-1);
         }
 
         // StringBuilder sb = new StringBuilder();
