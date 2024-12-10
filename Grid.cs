@@ -4,6 +4,10 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
 {
     private readonly Span<char> _grid = grid;
 
+    public Grid(string[] input) : this(input.SelectMany(s => s).ToArray(), input.Length, input[0].Length)
+    {
+    }
+
     public char this[int globalIndex]
     {
         get => _grid[globalIndex];
@@ -85,6 +89,103 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
     {
         return next.row >= 0 && next.row < rows
                              && next.col >= 0 && next.col < cols;
+    }
+
+    [Flags]
+    public enum NeighborType
+    {
+        None = 0,
+        North = 1,
+        East = 2,
+        South = 4,
+        West = 8,
+
+        NorthEast = 16,
+        SouthEast = 32,
+        SouthWest = 64,
+        NorthWest = 128,
+
+        Orthogonal = North | East | South | West,
+        Diagonal = NorthEast | SouthEast | NorthWest | SouthWest,
+        All = Orthogonal | Diagonal,
+    }
+
+    public (int row, int col)[] NeighborsOf((int row, int col) pos, char equals, NeighborType neighborType)
+    {
+        Span<(int row, int col)> neighbors = stackalloc (int row, int col)[8];
+        int index = 0;
+
+        if (neighborType.HasFlag(NeighborType.North)
+            && TryGetValue((pos.row - 1, pos.col), out char neighborNorth)
+            && neighborNorth == equals)
+        {
+            neighbors[index++] = (pos.row - 1, pos.col);
+        }
+
+        if (neighborType.HasFlag(NeighborType.East)
+            && TryGetValue((pos.row, pos.col + 1), out char neighborEast)
+            && neighborEast == equals)
+        {
+            neighbors[index++] = (pos.row, pos.col + 1);
+        }
+
+        if (neighborType.HasFlag(NeighborType.South)
+            && TryGetValue((pos.row + 1, pos.col), out char neighborSouth)
+            && neighborSouth == equals)
+        {
+            neighbors[index++] = (pos.row + 1, pos.col);
+        }
+
+        if (neighborType.HasFlag(NeighborType.West)
+            && TryGetValue((pos.row, pos.col - 1), out char neighborWest)
+            && neighborWest == equals)
+        {
+            neighbors[index++] = (pos.row, pos.col - 1);
+        }
+
+        if (neighborType.HasFlag(NeighborType.NorthEast)
+            && TryGetValue((pos.row - 1, pos.col + 1), out char neighborNorthEast)
+            && neighborNorthEast == equals)
+        {
+            neighbors[index++] = (pos.row - 1, pos.col + 1);
+        }
+
+        if (neighborType.HasFlag(NeighborType.SouthEast)
+            && TryGetValue((pos.row + 1, pos.col + 1), out char neighborSouthEast)
+            && neighborSouthEast == equals)
+        {
+            neighbors[index++] = (pos.row + 1, pos.col + 1);
+        }
+
+        if (neighborType.HasFlag(NeighborType.SouthWest)
+            && TryGetValue((pos.row + 1, pos.col - 1), out char neighborSouthWest)
+            && neighborSouthWest == equals)
+        {
+            neighbors[index++] = (pos.row + 1, pos.col - 1);
+        }
+
+        if (neighborType.HasFlag(NeighborType.NorthWest)
+            && TryGetValue((pos.row - 1, pos.col - 1), out char neighborNorthWest)
+            && neighborNorthWest == equals)
+        {
+            neighbors[index++] = (pos.row - 1, pos.col - 1);
+        }
+
+        return neighbors[..index].ToArray();
+    }
+
+    private bool TryGetValue((int, int col) pos, out char item)
+    {
+        if (InBounds(pos))
+        {
+            item = this[pos];
+            return true;
+        }
+        else
+        {
+            item = default;
+            return false;
+        }
     }
 
     public string ToString()
