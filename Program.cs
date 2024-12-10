@@ -7,7 +7,7 @@ public static partial class Program
     public static void Main()
     {
         // Run("test2", 60);
-        Run("test", 36);
+        Run("test", 81);
         Run("input");
 
         // 6415163624282
@@ -55,7 +55,8 @@ public static partial class Program
         char elevation = grid[pos];
         if (elevation is '9')
         {
-            return CountedPeaks.Add((start, pos)) ? 1 : 0;
+            return 1;
+            // return CountedPeaks.Add((start, pos)) ? 1 : 0;
         }
 
         var neighbors = grid.NeighborsOf(pos, (char)(elevation + 1), Grid.NeighborType.Orthogonal);
