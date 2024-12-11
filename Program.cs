@@ -7,7 +7,7 @@ public static partial class Program
     public static void Main()
     {
         // Run("test2", 60);
-        Run("test", 55312);
+        // Run("test", 55312);
         Run("input");
 
         // 6415163624282
@@ -35,41 +35,48 @@ public static partial class Program
     {
         long sum = 0;
 
-        long[] startStones = input[0].Split(' ').Select(long.Parse).ToArray();
+        Histogram<long> stones = new Histogram<long>(input[0].Split(' ').Select(long.Parse)
+            .GroupBy(stone => stone)
+            .ToDictionary(stone => stone.Key, stone => stone.LongCount()));
 
-        LinkedList<long> stones = new LinkedList<long>(startStones);
 
-        const int targetBlinks = 25;
+        const int targetBlinks = 75;
 
         for (int i = 0; i < targetBlinks; i++)
         {
-            for (LinkedListNode<long>? node = stones.First; node != null; node = node.Next)
+            var keyvalues = stones.ToArray();
+            foreach (var stoneGroup in keyvalues)
             {
-                switch (node.Value)
+                long stone = stoneGroup.Key;
+                long count = stoneGroup.Value;
+
+                switch (stone)
                 {
                     case 0:
                     {
-                        node.ValueRef++;
+                        stones.DecrementCount(0, count);
+                        stones.IncrementCount(1, count);
                         break;
                     }
                     case var x when Utils.DigitCount(x) % 2 == 0:
                     {
                         var split = Utils.Split(x);
-                        node.ValueRef = split.left;
-                        node = stones.AddAfter(node, split.right);
+                        stones.DecrementCount(x, count);
+
+                        stones.IncrementCount(split.left, count);
+                        stones.IncrementCount(split.right, count);
                         break;
                     }
                     default:
                     {
-                        node.ValueRef *= 2024;
+                        stones.DecrementCount(stone, count);
+                        stones.IncrementCount(stone * 2024, count);
                         break;
                     }
                 }
             }
         }
 
-        sum = stones.Count();
-
-        return sum;
+        return stones.Values.Sum();
     }
 }
