@@ -59,11 +59,12 @@ public static partial class Program
             // return CountedPeaks.Add((start, pos)) ? 1 : 0;
         }
 
-        var neighbors = grid.NeighborsOf(pos, (char)(elevation + 1), Grid.NeighborType.Orthogonal);
+        Span<(int row, int col)> neighbors = stackalloc (int row, int col)[8];
+        int count = grid.NeighborsOf(neighbors, pos, (char)(elevation + 1), Grid.NeighborType.Orthogonal);
 
         long score = 0;
 
-        foreach (var neighbor in neighbors)
+        foreach (var neighbor in neighbors[..count])
         {
             score += GetTrailScore(grid, start, neighbor);
         }

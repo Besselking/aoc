@@ -113,8 +113,14 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
     public (int row, int col)[] NeighborsOf((int row, int col) pos, char equals, NeighborType neighborType)
     {
         Span<(int row, int col)> neighbors = stackalloc (int row, int col)[8];
-        int index = 0;
+        int count = NeighborsOf(neighbors, pos, equals, neighborType);
+        return neighbors[..count].ToArray();
+    }
 
+    public int NeighborsOf(Span<(int row, int col)> neighbors, (int row, int col) pos, char equals,
+        NeighborType neighborType)
+    {
+        int index = 0;
         if (neighborType.HasFlag(NeighborType.North)
             && TryGetValue((pos.row - 1, pos.col), out char neighborNorth)
             && neighborNorth == equals)
@@ -171,7 +177,7 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
             neighbors[index++] = (pos.row - 1, pos.col - 1);
         }
 
-        return neighbors[..index].ToArray();
+        return index;
     }
 
     private bool TryGetValue((int, int col) pos, out char item)
