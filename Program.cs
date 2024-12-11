@@ -7,7 +7,7 @@ public static partial class Program
     public static void Main()
     {
         // Run("test2", 60);
-        Run("test", 81);
+        Run("test", 55312);
         Run("input");
 
         // 6415163624282
@@ -15,7 +15,7 @@ public static partial class Program
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d10.txt");
+        var input = File.ReadAllLines($"{type}-d11.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -35,40 +35,41 @@ public static partial class Program
     {
         long sum = 0;
 
-        Grid grid = new(input);
+        long[] startStones = input[0].Split(' ').Select(long.Parse).ToArray();
 
-        var trailStarts = grid.IndexesOf('0');
+        LinkedList<long> stones = new LinkedList<long>(startStones);
 
-        foreach (var trailStart in trailStarts)
+        const int targetBlinks = 25;
+
+        for (int i = 0; i < targetBlinks; i++)
         {
-            long score = GetTrailScore(grid, trailStart, trailStart);
-            sum += score;
+            for (LinkedListNode<long>? node = stones.First; node != null; node = node.Next)
+            {
+                switch (node.Value)
+                {
+                    case 0:
+                    {
+                        node.ValueRef++;
+                        break;
+                    }
+                    case var x when Utils.DigitCount(x) % 2 == 0:
+                    {
+                        var split = Utils.Split(x);
+                        node.ValueRef = split.left;
+                        node = stones.AddAfter(node, split.right);
+                        break;
+                    }
+                    default:
+                    {
+                        node.ValueRef *= 2024;
+                        break;
+                    }
+                }
+            }
         }
+
+        sum = stones.Count();
 
         return sum;
-    }
-
-    private static readonly HashSet<((int row, int col) start, (int row, int col) end)> CountedPeaks = [];
-
-    private static long GetTrailScore(Grid grid, (int row, int col) start, (int row, int col) pos)
-    {
-        char elevation = grid[pos];
-        if (elevation is '9')
-        {
-            return 1;
-            // return CountedPeaks.Add((start, pos)) ? 1 : 0;
-        }
-
-        Span<(int row, int col)> neighbors = stackalloc (int row, int col)[8];
-        int count = grid.NeighborsOf(neighbors, pos, (char)(elevation + 1), Grid.NeighborType.Orthogonal);
-
-        long score = 0;
-
-        foreach (var neighbor in neighbors[..count])
-        {
-            score += GetTrailScore(grid, start, neighbor);
-        }
-
-        return score;
     }
 }

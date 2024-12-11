@@ -7,6 +7,46 @@ public static class Utils
         return (byte)((line[offset + 0] - '0') * 10 + (line[offset + 1] - '0'));
     }
 
+    internal static int DigitCount(long value)
+    {
+        return value switch
+        {
+            < 10L => 1,
+            < 100L => 2,
+            < 1000L => 3,
+            < 10000L => 4,
+            < 100000L => 5,
+            < 1000000L => 6,
+            < 10000000L => 7,
+            < 100000000L => 8,
+            < 1000000000L => 9,
+            < 10000000000L => 10,
+            < 100000000000L => 11,
+            < 1000000000000L => 12,
+            < 10000000000000L => 13,
+            < 100000000000000L => 14,
+            < 1000000000000000L => 15,
+            < 10000000000000000L => 16,
+            < 100000000000000000L => 18,
+            _ => 19
+        };
+    }
+
+    internal static (long left, long right) Split(long value)
+    {
+        return value switch
+        {
+            < 100L => (value / 10L, value % 10L),
+            < 10000L => (value / 100L, value % 100L),
+            < 1000000L => (value / 1000L, value % 1000L),
+            < 100000000L => (value / 10000L, value % 10000L),
+            < 10000000000L => (value / 100000L, value % 100000L),
+            < 1000000000000L => (value / 1000000L, value % 1000000L),
+            < 100000000000000L => (value / 1000000L, value % 1000000L),
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
+        };
+    }
+
     internal static long Concat(long a, long b)
     {
         return b switch
