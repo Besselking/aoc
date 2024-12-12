@@ -6,9 +6,9 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test3", 140);
-        Run("test2", 772);
-        Run("test", 1930);
+        Run("test3", 80);
+        Run("test2", 436);
+        Run("test", 1206);
         Run("input");
 
         // 6415163624282
@@ -57,6 +57,7 @@ public static partial class Program
 
                 int area = 1;
                 int perimeter = 4;
+                int corners = CountCorners(grid, pos);
 
                 while (queue.Count > 0)
                 {
@@ -69,16 +70,52 @@ public static partial class Program
                         {
                             area++;
                             perimeter += 4;
+                            corners += CountCorners(grid, nb);
                             queue.Enqueue(nb);
                             plotted.Add(nb);
                         }
                     }
                 }
 
-                sum += area * perimeter;
+                sum += area * corners;
             }
         }
 
         return sum;
+    }
+
+    private static int CountCorners(Grid grid, (int row, int col) pos)
+    {
+        int count = 0;
+        (int row, int col)[] dirs =
+        [
+            (0, -1),
+            (1, 0),
+            (0, 1),
+            (-1, 0),
+        ];
+
+        for (int i = 0; i < dirs.Length; i++)
+        {
+            var dir1 = dirs[i];
+            var dir2 = dirs[(i + 1) % dirs.Length];
+
+            var plant = grid[(pos.row, pos.col)];
+            var leftPos = (pos.row + dir1.row, pos.col + dir1.col);
+            char? left = grid.InBounds(leftPos) ? grid[leftPos] : null;
+
+            var rightPos = (pos.row + dir2.row, pos.col + dir2.col);
+            char? right = grid.InBounds(rightPos) ? grid[rightPos] : null;
+
+            var middlePos = (pos.row + dir1.row + dir2.row, pos.col + dir1.col + dir2.col);
+            char? middle = grid.InBounds(middlePos) ? grid[middlePos] : null;
+
+            if ((left != plant && right != plant) || (left == plant && right == plant && middle != plant))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
