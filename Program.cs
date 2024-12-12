@@ -6,8 +6,9 @@ public static partial class Program
 {
     public static void Main()
     {
-        // Run("test2", 60);
-        // Run("test", 55312);
+        Run("test3", 140);
+        Run("test2", 772);
+        Run("test", 1930);
         Run("input");
 
         // 6415163624282
@@ -15,7 +16,7 @@ public static partial class Program
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d11.txt");
+        var input = File.ReadAllLines($"{type}-d12.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -35,48 +36,49 @@ public static partial class Program
     {
         long sum = 0;
 
-        Histogram<long> stones = new Histogram<long>(input[0].Split(' ').Select(long.Parse)
-            .GroupBy(stone => stone)
-            .ToDictionary(stone => stone.Key, stone => stone.LongCount()));
+        Grid grid = new Grid(input);
 
+        HashSet<(int row, int col)> plotted = [];
+        Queue<(int row, int col)> queue = [];
+        Span<(int row, int col)> nbs = stackalloc (int, int)[4];
 
-        const int targetBlinks = 75;
-
-        for (int i = 0; i < targetBlinks; i++)
+        for (int row = 0; row < grid.Rows; row++)
         {
-            var keyvalues = stones.ToArray();
-            foreach (var stoneGroup in keyvalues)
+            for (int col = 0; col < grid.Cols; col++)
             {
-                long stone = stoneGroup.Key;
-                long count = stoneGroup.Value;
+                (int row, int col) pos = (row, col);
+                if (plotted.Contains(pos)) continue;
 
-                switch (stone)
+                queue.Clear();
+                queue.Enqueue(pos);
+                plotted.Add(pos);
+
+                char plant = grid[row, col];
+
+                int area = 1;
+                int perimeter = 4;
+
+                while (queue.Count > 0)
                 {
-                    case 0:
+                    var nextPos = queue.Dequeue();
+                    int count = grid.NeighborsOf(nbs, nextPos, plant, Grid.NeighborType.Orthogonal);
+                    foreach (var nb in nbs[..count])
                     {
-                        stones.DecrementCount(0, count);
-                        stones.IncrementCount(1, count);
-                        break;
-                    }
-                    case var x when Utils.DigitCount(x) % 2 == 0:
-                    {
-                        var split = Utils.Split(x);
-                        stones.DecrementCount(x, count);
-
-                        stones.IncrementCount(split.left, count);
-                        stones.IncrementCount(split.right, count);
-                        break;
-                    }
-                    default:
-                    {
-                        stones.DecrementCount(stone, count);
-                        stones.IncrementCount(stone * 2024, count);
-                        break;
+                        perimeter--;
+                        if (!plotted.Contains(nb))
+                        {
+                            area++;
+                            perimeter += 4;
+                            queue.Enqueue(nb);
+                            plotted.Add(nb);
+                        }
                     }
                 }
+
+                sum += area * perimeter;
             }
         }
 
-        return stones.Values.Sum();
+        return sum;
     }
 }

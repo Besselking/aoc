@@ -1,9 +1,32 @@
+using System.Runtime.CompilerServices;
+
 namespace aoc;
 
 //https://stackoverflow.com/a/926589
-public class Histogram<T>(Dictionary<T, long> source) : Dictionary<T, long>(source)
+[CollectionBuilder(typeof(HistogramBuilder), "Create")]
+public class Histogram<T> : Dictionary<T, long>
     where T : notnull
 {
+    public Histogram(ReadOnlySpan<T> source)
+    {
+        foreach (var item in source)
+        {
+            Add(item, 0);
+        }
+    }
+
+    public Histogram(ReadOnlySpan<KeyValuePair<T, long>> source)
+    {
+        foreach (var item in source)
+        {
+            Add(item.Key, item.Value);
+        }
+    }
+
+    public Histogram(Dictionary<T, long> source) : base(source)
+    {
+    }
+
     public void IncrementCount(T key)
     {
         if (ContainsKey(key))
@@ -39,4 +62,13 @@ public class Histogram<T>(Dictionary<T, long> source) : Dictionary<T, long>(sour
             Add(key, -count);
         }
     }
+}
+
+public static class HistogramBuilder
+{
+    internal static Histogram<T> Create<T>(ReadOnlySpan<T> values) where T : notnull
+        => new Histogram<T>(values);
+
+    internal static Histogram<T> Create<T>(ReadOnlySpan<KeyValuePair<T, long>> values) where T : notnull
+        => new Histogram<T>(values);
 }
