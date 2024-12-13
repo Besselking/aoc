@@ -83,4 +83,6 @@ public static class Utils
     {
         return range.End.Value - range.Start.Value;
     }
+
+    internal static int ParseAsInt(this ReadOnlySpan<char> span) => int.Parse(span);
 }

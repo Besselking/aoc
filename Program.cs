@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
+using System.Text.RegularExpressions;
 
 namespace aoc;
 
@@ -6,17 +8,17 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test3", 80);
-        Run("test2", 436);
-        Run("test", 1206);
-        Run("input");
+        // Run("test3", 80);
+        // Run("test2", 436);
+        Run("test", 480);
+        Run("input", 37901);
 
         // 6415163624282
     }
 
     private static void Run(string type, int? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d12.txt");
+        var input = File.ReadAllLines($"{type}-d13.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -36,86 +38,54 @@ public static partial class Program
     {
         long sum = 0;
 
-        Grid grid = new Grid(input);
+        Machine[] machines = new Machine[input.Length / 4 + 1];
 
-        HashSet<(int row, int col)> plotted = [];
-        Queue<(int row, int col)> queue = [];
-        Span<(int row, int col)> nbs = stackalloc (int, int)[4];
-
-        for (int row = 0; row < grid.Rows; row++)
+        for (int i = 0; i < input.Length; i += 4)
         {
-            for (int col = 0; col < grid.Cols; col++)
-            {
-                (int row, int col) pos = (row, col);
-                if (plotted.Contains(pos)) continue;
+            Match a = Button().Match(input[i]);
+            Match b = Button().Match(input[i + 1]);
+            Match prize = Prize().Match(input[i + 2]);
 
-                queue.Clear();
-                queue.Enqueue(pos);
-                plotted.Add(pos);
+            int ax = a.Groups["x"].ValueSpan.ParseAsInt();
+            int ay = a.Groups["y"].ValueSpan.ParseAsInt();
 
-                char plant = grid[row, col];
+            int bx = b.Groups["x"].ValueSpan.ParseAsInt();
+            int by = b.Groups["y"].ValueSpan.ParseAsInt();
 
-                int area = 1;
-                int perimeter = 4;
-                int corners = CountCorners(grid, pos);
+            int prizex = prize.Groups["x"].ValueSpan.ParseAsInt();
+            int prizey = prize.Groups["y"].ValueSpan.ParseAsInt();
 
-                while (queue.Count > 0)
-                {
-                    var nextPos = queue.Dequeue();
-                    int count = grid.NeighborsOf(nbs, nextPos, plant, Grid.NeighborType.Orthogonal);
-                    foreach (var nb in nbs[..count])
-                    {
-                        perimeter--;
-                        if (!plotted.Contains(nb))
-                        {
-                            area++;
-                            perimeter += 4;
-                            corners += CountCorners(grid, nb);
-                            queue.Enqueue(nb);
-                            plotted.Add(nb);
-                        }
-                    }
-                }
+            machines[i / 4] = new Machine(
+                new(ax, ay),
+                new(bx, by),
+                new(prizex, prizey));
+        }
 
-                sum += area * corners;
-            }
+        foreach (var machine in machines)
+        {
+            float delta = machine.A.X * machine.B.Y - machine.A.Y * machine.B.X;
+
+            if (delta == 0)
+                continue;
+
+            float aPresses = (machine.B.Y * machine.Prize.X - machine.B.X * machine.Prize.Y) / delta;
+            float bPresses = (machine.A.X * machine.Prize.Y - machine.A.Y * machine.Prize.X) / delta;
+
+            if (aPresses % 1 > float.Epsilon
+                || bPresses % 1 > float.Epsilon) continue;
+
+            sum += (int)(aPresses * 3 + bPresses);
         }
 
         return sum;
     }
 
-    private static int CountCorners(Grid grid, (int row, int col) pos)
-    {
-        int count = 0;
-        (int row, int col)[] dirs =
-        [
-            (0, -1),
-            (1, 0),
-            (0, 1),
-            (-1, 0),
-        ];
+    private record class Machine(Vector2 A, Vector2 B, Vector2 Prize);
+    // private record struct Vector2I(int X, int Y);
 
-        for (int i = 0; i < dirs.Length; i++)
-        {
-            var dir1 = dirs[i];
-            var dir2 = dirs[(i + 1) % dirs.Length];
+    [GeneratedRegex(@"Button [AB]: X\+(?<x>\d{2}), Y\+(?<y>\d{2})")]
+    public static partial Regex Button();
 
-            var plant = grid[(pos.row, pos.col)];
-            var leftPos = (pos.row + dir1.row, pos.col + dir1.col);
-            char? left = grid.InBounds(leftPos) ? grid[leftPos] : null;
-
-            var rightPos = (pos.row + dir2.row, pos.col + dir2.col);
-            char? right = grid.InBounds(rightPos) ? grid[rightPos] : null;
-
-            var middlePos = (pos.row + dir1.row + dir2.row, pos.col + dir1.col + dir2.col);
-            char? middle = grid.InBounds(middlePos) ? grid[middlePos] : null;
-
-            if ((left != plant && right != plant) || (left == plant && right == plant && middle != plant))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
+    [GeneratedRegex(@"Prize: X=(?<x>\d+), Y=(?<y>\d+)")]
+    public static partial Regex Prize();
 }
