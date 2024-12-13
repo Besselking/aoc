@@ -10,8 +10,9 @@ public static partial class Program
     {
         // Run("test3", 80);
         // Run("test2", 436);
-        Run("test", 480);
-        Run("input", 37901);
+        // Run("test", 480);
+        Run("input");
+        // 687194767040 low
 
         // 6415163624282
     }
@@ -58,7 +59,12 @@ public static partial class Program
             machines[i / 4] = new Machine(
                 new(ax, ay),
                 new(bx, by),
-                new(prizex, prizey));
+                new(
+                    prizex
+                    + 10000000000000
+                    , prizey
+                      + 10000000000000
+                ));
         }
 
         foreach (var machine in machines)
