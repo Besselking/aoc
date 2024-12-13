@@ -11,7 +11,7 @@ public static partial class Program
         // Run("test2", 436);
         // Run("test", 480);
         Run("test", 875318608908);
-        Run("input");
+        Run("input", 77407675412647);
         // 687194767040 low
         // 294205259639
         // 654982512335
@@ -71,15 +71,12 @@ public static partial class Program
 
         foreach (var machine in machines)
         {
-            double delta = machine.A.X * machine.B.Y - machine.A.Y * machine.B.X;
-            double aPresses = (machine.B.Y * machine.Prize.X - machine.B.X * machine.Prize.Y) / delta;
-            double bPresses = (machine.A.X * machine.Prize.Y - machine.A.Y * machine.Prize.X) / delta;
+            long delta = machine.A.X * machine.B.Y - machine.A.Y * machine.B.X;
+            long aPresses = (machine.B.Y * machine.Prize.X - machine.B.X * machine.Prize.Y) / delta;
+            long bPresses = (machine.A.X * machine.Prize.Y - machine.A.Y * machine.Prize.X) / delta;
 
-            if (aPresses % 1 > double.Epsilon
-                || bPresses % 1 > double.Epsilon) continue;
-
-            if (Math.Abs(aPresses * machine.A.X + bPresses * machine.B.X - machine.Prize.X) < double.Epsilon
-                && Math.Abs(aPresses * machine.A.Y + bPresses * machine.B.Y - machine.Prize.Y) < double.Epsilon)
+            if (aPresses * machine.A.X + bPresses * machine.B.X == machine.Prize.X
+                && aPresses * machine.A.Y + bPresses * machine.B.Y == machine.Prize.Y)
             {
                 sum += (long)(aPresses * 3 + bPresses);
             }
@@ -88,9 +85,11 @@ public static partial class Program
         return sum;
     }
 
-    private record class Machine(Vector2Double A, Vector2Double B, Vector2Double Prize);
+    private record class Machine(Vector2Long A, Vector2Long B, Vector2Long Prize);
 
     private record struct Vector2Double(double X, double Y);
+
+    private record struct Vector2Long(long X, long Y);
 
     [GeneratedRegex(@"Button [AB]: X\+(?<x>\d{2}), Y\+(?<y>\d{2})")]
     public static partial Regex Button();
