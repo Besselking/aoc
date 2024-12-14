@@ -19,8 +19,8 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
 
     public char this[int row, int col]
     {
-        get => _grid[row * rows + col];
-        set => _grid[row * rows + col] = value;
+        get => _grid[row * cols + col];
+        set => _grid[row * cols + col] = value;
     }
 
     public char this[(int row, int col) pos]
@@ -295,14 +295,16 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
     {
         return String.Create(rows * cols + rows, (grid, rows, cols), (str, state) =>
         {
+            int offset = 0;
             for (int row = 0; row < state.rows; row++)
             {
                 for (int col = 0; col < state.cols; col++)
                 {
-                    str[row * state.rows + col + row] = state.grid[row * state.rows + col];
+                    str[row * state.cols + col + offset] = state.grid[row * state.cols + col];
                 }
 
-                str[row * state.rows + state.cols + row] = '\n';
+                str[row * state.cols + state.cols + offset] = '\n';
+                offset++;
             }
         });
     }

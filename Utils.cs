@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace aoc;
 
 public static class Utils
@@ -85,4 +87,7 @@ public static class Utils
     }
 
     internal static int ParseAsInt(this ReadOnlySpan<char> span) => int.Parse(span);
+    internal static long ParseAsLong(this ReadOnlySpan<char> span) => long.Parse(span);
+
+    internal static long GetLong(this Match match, string group) => match.Groups[group].ValueSpan.ParseAsLong();
 }

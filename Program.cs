@@ -10,18 +10,17 @@ public static partial class Program
         // Run("test3", 80);
         // Run("test2", 436);
         // Run("test", 480);
-        Run("test", 875318608908);
-        Run("input", 77407675412647);
-        // 687194767040 low
-        // 294205259639
-        // 654982512335
-        // 148541582979594
-        // 77407675412647
+        Bounds = new Vector2Long(11, 7);
+        Run("test", 12);
+        Bounds = new Vector2Long(101, 103);
+        Run("input");
+        // 223432704 low
+        // 228421332
     }
 
     private static void Run(string type, long? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d13.txt");
+        var input = File.ReadAllLines($"{type}-d14.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -41,59 +40,87 @@ public static partial class Program
     {
         long sum = 0;
 
-        Machine[] machines = new Machine[input.Length / 4 + 1];
-
-        for (int i = 0; i < input.Length; i += 4)
+        Robot[] robots = new Robot[input.Length];
+        for (int i = 0; i < robots.Length; i++)
         {
-            Match a = Button().Match(input[i]);
-            Match b = Button().Match(input[i + 1]);
-            Match prize = Prize().Match(input[i + 2]);
+            Match match = RobotRx().Match(input[i]);
 
-            int ax = a.Groups["x"].ValueSpan.ParseAsInt();
-            int ay = a.Groups["y"].ValueSpan.ParseAsInt();
+            Debug.Assert(match.Success, input[i]);
 
-            int bx = b.Groups["x"].ValueSpan.ParseAsInt();
-            int by = b.Groups["y"].ValueSpan.ParseAsInt();
-
-            long prizex = prize.Groups["x"].ValueSpan.ParseAsInt();
-            long prizey = prize.Groups["y"].ValueSpan.ParseAsInt();
-
-            machines[i / 4] = new Machine(
-                new(ax, ay),
-                new(bx, by),
+            robots[i] = new Robot(
                 new(
-                    prizex
-                    + 10000000000000L
-                    , prizey
-                      + 10000000000000L
-                ));
+                    match.GetLong("px"),
+                    match.GetLong("py")
+                ),
+                new(
+                    match.GetLong("vx"),
+                    match.GetLong("vy")
+                )
+            );
         }
 
-        foreach (var machine in machines)
-        {
-            long delta = machine.A.X * machine.B.Y - machine.A.Y * machine.B.X;
-            long aPresses = (machine.B.Y * machine.Prize.X - machine.B.X * machine.Prize.Y) / delta;
-            long bPresses = (machine.A.X * machine.Prize.Y - machine.A.Y * machine.Prize.X) / delta;
+        const long seconds = 100;
 
-            if (aPresses * machine.A.X + bPresses * machine.B.X == machine.Prize.X
-                && aPresses * machine.A.Y + bPresses * machine.B.Y == machine.Prize.Y)
+        var chars = new char[Bounds.X * Bounds.Y];
+        Array.Fill(chars, '.');
+        Grid grid = new Grid(chars, (int)Bounds.Y, (int)Bounds.X);
+
+        for (int i = 0; i < robots.Length; i++)
+        {
+            var robot = robots[i];
+            var newPos = robot.Pos + (robot.Vel * seconds);
+            var wrappedPos = newPos.Wrap(Bounds);
+
+            robots[i] = robot with { Pos = wrappedPos };
+            if (grid[(int)wrappedPos.Y, (int)wrappedPos.X] != '.')
             {
-                sum += (long)(aPresses * 3 + bPresses);
+                grid[(int)wrappedPos.Y, (int)wrappedPos.X]++;
+            }
+            else
+            {
+                grid[(int)wrappedPos.Y, (int)wrappedPos.X] = '1';
             }
         }
 
-        return sum;
+        Console.WriteLine(grid.ToString());
+
+        var middlepoint = Bounds / 2;
+
+        int topleft = robots.Count(r => r.Pos.Y < middlepoint.Y && r.Pos.X < middlepoint.X);
+        int topRight = robots.Count(r => r.Pos.Y < middlepoint.Y && r.Pos.X > middlepoint.X);
+        int bottomLeft = robots.Count(r => r.Pos.Y > middlepoint.Y && r.Pos.X < middlepoint.X);
+        int bottomRight = robots.Count(r => r.Pos.Y > middlepoint.Y && r.Pos.X > middlepoint.X);
+
+        return topleft * topRight * bottomLeft * bottomRight;
     }
 
-    private record class Machine(Vector2Long A, Vector2Long B, Vector2Long Prize);
+    private static Vector2Long Bounds = new(0, 0);
 
-    private record struct Vector2Double(double X, double Y);
+    public record Robot(Vector2Long Pos, Vector2Long Vel);
 
-    private record struct Vector2Long(long X, long Y);
+    public record Vector2Long(long X, long Y)
+    {
+        public static Vector2Long operator +(Vector2Long a, Vector2Long b)
+            => new(a.X + b.X, a.Y + b.Y);
 
-    [GeneratedRegex(@"Button [AB]: X\+(?<x>\d{2}), Y\+(?<y>\d{2})")]
-    public static partial Regex Button();
+        public static Vector2Long operator *(Vector2Long a, long scalar)
+            => new(a.X * scalar, a.Y * scalar);
 
-    [GeneratedRegex(@"Prize: X=(?<x>\d+), Y=(?<y>\d+)")]
-    public static partial Regex Prize();
+        public static Vector2Long operator %(Vector2Long a, Vector2Long b)
+            => new(a.X % b.X, a.Y % b.Y);
+
+        public static Vector2Long operator /(Vector2Long a, long scalar)
+            => new(a.X / scalar, a.Y / scalar);
+
+        public Vector2Long Wrap(Vector2Long bounds)
+        {
+            long x = X >= 0 ? X % bounds.X : (X % bounds.X + bounds.X) % bounds.X;
+            long y = Y >= 0 ? Y % bounds.Y : (Y % bounds.Y + bounds.Y) % bounds.Y;
+
+            return new Vector2Long(x, y);
+        }
+    }
+
+    [GeneratedRegex(@"p=(?<px>\d+),(?<py>\d+) v=(?<vx>-?\d+),(?<vy>-?\d+)")]
+    public static partial Regex RobotRx();
 }
