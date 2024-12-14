@@ -10,8 +10,8 @@ public static partial class Program
         // Run("test3", 80);
         // Run("test2", 436);
         // Run("test", 480);
-        Bounds = new Vector2Long(11, 7);
-        Run("test", 12);
+        // Bounds = new Vector2Long(11, 7);
+        // Run("test", 12);
         Bounds = new Vector2Long(101, 103);
         Run("input");
         // 223432704 low
@@ -59,30 +59,42 @@ public static partial class Program
             );
         }
 
-        const long seconds = 100;
+        const long seconds = 1;
 
         var chars = new char[Bounds.X * Bounds.Y];
         Array.Fill(chars, '.');
         Grid grid = new Grid(chars, (int)Bounds.Y, (int)Bounds.X);
 
-        for (int i = 0; i < robots.Length; i++)
+        long secondsPassed = 0;
+        while (true)
         {
-            var robot = robots[i];
-            var newPos = robot.Pos + (robot.Vel * seconds);
-            var wrappedPos = newPos.Wrap(Bounds);
+            Array.Fill(chars, '.');
+            for (int i = 0; i < robots.Length; i++)
+            {
+                var robot = robots[i];
+                var newPos = robot.Pos + (robot.Vel * seconds);
+                var wrappedPos = newPos.Wrap(Bounds);
 
-            robots[i] = robot with { Pos = wrappedPos };
-            if (grid[(int)wrappedPos.Y, (int)wrappedPos.X] != '.')
-            {
-                grid[(int)wrappedPos.Y, (int)wrappedPos.X]++;
+                robots[i] = robot with { Pos = wrappedPos };
+                if (grid[(int)wrappedPos.Y, (int)wrappedPos.X] != '.')
+                {
+                    grid[(int)wrappedPos.Y, (int)wrappedPos.X]++;
+                }
+                else
+                {
+                    grid[(int)wrappedPos.Y, (int)wrappedPos.X] = '1';
+                }
             }
-            else
+
+            secondsPassed += seconds;
+
+            if (chars.AsSpan().IndexOf("111111111111") != -1)
             {
-                grid[(int)wrappedPos.Y, (int)wrappedPos.X] = '1';
+                Console.WriteLine(grid.ToString());
+                return secondsPassed;
             }
         }
 
-        Console.WriteLine(grid.ToString());
 
         var middlepoint = Bounds / 2;
 
