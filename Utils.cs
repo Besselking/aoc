@@ -90,4 +90,52 @@ public static class Utils
     internal static long ParseAsLong(this ReadOnlySpan<char> span) => long.Parse(span);
 
     internal static long GetLong(this Match match, string group) => match.Groups[group].ValueSpan.ParseAsLong();
+
+    internal static Range MinMaxRange(int a, int b)
+    {
+        if (a < b)
+        {
+            return a..b;
+        }
+        else
+        {
+            return b..a;
+        }
+    }
+
+    internal static Grid.NeighborType Right(this Grid.NeighborType type)
+    {
+        return type switch
+        {
+            Grid.NeighborType.North => Grid.NeighborType.NorthEast,
+            Grid.NeighborType.South => Grid.NeighborType.SouthEast,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
+
+    internal static Grid.NeighborType Left(this Grid.NeighborType type)
+    {
+        return type switch
+        {
+            Grid.NeighborType.North => Grid.NeighborType.NorthWest,
+            Grid.NeighborType.South => Grid.NeighborType.SouthWest,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
+
+    internal static Grid.NeighborType Flip(this Grid.NeighborType type)
+    {
+        return type switch
+        {
+            Grid.NeighborType.North => Grid.NeighborType.South,
+            Grid.NeighborType.South => Grid.NeighborType.North,
+            Grid.NeighborType.East => Grid.NeighborType.West,
+            Grid.NeighborType.West => Grid.NeighborType.East,
+            Grid.NeighborType.NorthEast => Grid.NeighborType.SouthWest,
+            Grid.NeighborType.NorthWest => Grid.NeighborType.SouthEast,
+            Grid.NeighborType.SouthEast => Grid.NeighborType.NorthWest,
+            Grid.NeighborType.SouthWest => Grid.NeighborType.NorthEast,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
 }

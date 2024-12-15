@@ -40,10 +40,17 @@ public readonly ref struct Grid(char[] grid, int rows, int cols)
         return ToIndex(globalIndex);
     }
 
-    private (int, int) ToIndex(int globalIndex)
+    public (int, int) ToIndex(int globalIndex)
     {
-        return (globalIndex / rows, globalIndex % cols);
+        return (globalIndex / cols, globalIndex % cols);
     }
+
+    public int ToGlobalIndex((int row, int col) pos)
+    {
+        return pos.row * cols + pos.col;
+    }
+
+    public Span<char> this[Range range] => _grid[range];
 
     public int Count(char item) => _grid.Count(item);
 

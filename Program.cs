@@ -6,12 +6,8 @@ public static partial class Program
 {
     public static void Main()
     {
-        // Run("test3", 80);
-        // Run("test2", 436);
-        // Run("test", 480);
-        // Bounds = new Vector2Long(11, 7);
-        Run("test", 10092);
-        // Bounds = new Vector2Long(101, 103);
+        Run("test2", 618);
+        Run("test", 9021);
         Run("input");
     }
 
@@ -39,8 +35,30 @@ public static partial class Program
 
         int gridEnd = Array.IndexOf(input, "");
 
-        string[] gridData = input[..gridEnd];
+        string[] gridMap = input[..gridEnd];
+
+        string[] gridData = new string[gridEnd];
+        for (int i = 0; i < gridMap.Length; i++)
+        {
+            gridData[i] = String.Create(gridMap[i].Length * 2, gridMap[i], (span, map) =>
+            {
+                for (int j = 0; j < map.Length; j++)
+                {
+                    string replacement = map[j] switch
+                    {
+                        '@' => "@.",
+                        '#' => "##",
+                        'O' => "[]",
+                        '.' => ".."
+                    };
+
+                    replacement.CopyTo(span.Slice(j * 2, 2));
+                }
+            });
+        }
+
         Grid grid = new Grid(gridData);
+        // Console.WriteLine(grid.ToString());
 
         string moveData = String.Join("", input[(gridEnd + 1)..]);
 
@@ -49,6 +67,7 @@ public static partial class Program
         var currentPos = startPos;
         foreach (var move in moveData)
         {
+            // Console.WriteLine(grid.ToString());
             var neighbour = move switch
             {
                 '^' => Grid.NeighborType.North,
@@ -72,36 +91,148 @@ public static partial class Program
                 currentPos = nextPos;
                 grid[currentPos] = '@';
             }
-            else if (nextTile is 'O')
+            else if (nextTile is '[' or ']')
             {
-                // box, attempt push
-                // find next free space
-                var pushingPos = grid.GetNeighborPos(nextPos, neighbour);
-                bool canPush = true;
-                while (grid[pushingPos] is not '.')
+                if (neighbour is Grid.NeighborType.East or Grid.NeighborType.West)
                 {
-                    if (grid[pushingPos] is '#')
+                    var pushingPos = grid.GetNeighborPos(grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                    bool canPush = true;
+                    while (grid[pushingPos] is not '.')
                     {
-                        canPush = false;
-                        break;
+                        if (grid[pushingPos] is '#')
+                        {
+                            canPush = false;
+                            break;
+                        }
+
+                        pushingPos = grid.GetNeighborPos(grid.GetNeighborPos(pushingPos, neighbour), neighbour);
                     }
 
-                    pushingPos = grid.GetNeighborPos(pushingPos, neighbour);
+                    if (!canPush) continue;
+
+                    int globalPushPos = grid.ToGlobalIndex(pushingPos);
+                    int globalCurrentPos = grid.ToGlobalIndex(currentPos);
+
+                    Range range = Utils.MinMaxRange(globalPushPos, globalCurrentPos);
+                    var span = grid[range];
+                    span.Replace('[', '}');
+                    span.Replace(']', '[');
+                    span.Replace('}', ']');
+
+                    if (grid[nextPos] is '[')
+                    {
+                        grid[globalPushPos] = '[';
+                    }
+                    else
+                    {
+                        grid[globalPushPos] = ']';
+                    }
+
+                    grid[currentPos] = '.';
+                    currentPos = nextPos;
+                    grid[currentPos] = '@';
                 }
+                else
+                {
+                    bool canPush = StartCheckObstacles(grid, nextPos, neighbour);
 
-                if (!canPush) continue;
+                    if (!canPush) continue;
 
-                grid[pushingPos] = 'O';
-                grid[currentPos] = '.';
-                currentPos = nextPos;
-                grid[currentPos] = '@';
+                    DoPush(grid, nextPos, neighbour);
+                    currentPos = nextPos;
+                }
             }
         }
 
-        var boxPositions = grid.IndexesOf('O');
+        Console.WriteLine(grid.ToString());
+
+        var boxPositions = grid.IndexesOf('[');
 
         sum = boxPositions.Sum(pos => pos.row * 100 + pos.col);
 
         return sum;
+    }
+
+    private static void DoPush(Grid grid, (int row, int col) nextPos, Grid.NeighborType neighbour)
+    {
+        char boxTile = grid[nextPos];
+
+        switch (boxTile)
+        {
+            case '[':
+            {
+                // pushing left side
+                DoPush(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                DoPush(grid, grid.GetNeighborPos(nextPos, neighbour.Right()), neighbour);
+                DoPush(grid, nextPos, neighbour);
+                break;
+            }
+            case ']':
+            {
+                // pushing right side
+                DoPush(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                DoPush(grid, grid.GetNeighborPos(nextPos, neighbour.Left()), neighbour);
+                DoPush(grid, nextPos, neighbour);
+                break;
+            }
+            case '.':
+            {
+                (int row, int col) lastPos = grid.GetNeighborPos(nextPos, neighbour.Flip());
+                grid[nextPos] = grid[lastPos];
+                grid[lastPos] = '.';
+                break;
+            }
+        }
+    }
+
+    private static bool StartCheckObstacles(Grid grid, (int row, int col) nextPos, Grid.NeighborType neighbour)
+    {
+        char boxTile = grid[nextPos];
+        bool canPush = true;
+
+        switch (boxTile)
+        {
+            case '#':
+                return false;
+            case '[':
+                // pushing left side
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour.Right()), neighbour);
+                break;
+            case ']':
+                // pushing right side
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour.Left()), neighbour);
+                break;
+        }
+
+        return canPush;
+    }
+
+    private static bool CheckObstacles(Grid grid, (int row, int col) nextPos, Grid.NeighborType neighbour)
+    {
+        char boxTile = grid[nextPos];
+        bool canPush = true;
+
+        switch (boxTile)
+        {
+            case '#':
+                return false;
+            case '.':
+                return true;
+            case '[':
+                // pushing left side
+
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour.Right()), neighbour);
+                break;
+            case ']':
+                // pushing right side
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour), neighbour);
+                canPush = canPush && CheckObstacles(grid, grid.GetNeighborPos(nextPos, neighbour.Left()), neighbour);
+                break;
+        }
+
+        return canPush;
     }
 }
