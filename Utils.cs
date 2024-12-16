@@ -103,7 +103,7 @@ public static class Utils
         }
     }
 
-    internal static Grid.NeighborType Right(this Grid.NeighborType type)
+    internal static Grid.NeighborType RightColumn(this Grid.NeighborType type)
     {
         return type switch
         {
@@ -113,7 +113,7 @@ public static class Utils
         };
     }
 
-    internal static Grid.NeighborType Left(this Grid.NeighborType type)
+    internal static Grid.NeighborType LeftColumn(this Grid.NeighborType type)
     {
         return type switch
         {
@@ -135,6 +135,38 @@ public static class Utils
             Grid.NeighborType.NorthWest => Grid.NeighborType.SouthEast,
             Grid.NeighborType.SouthEast => Grid.NeighborType.NorthWest,
             Grid.NeighborType.SouthWest => Grid.NeighborType.NorthEast,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
+
+    internal static Grid.NeighborType TurnLeft(this Grid.NeighborType type)
+    {
+        return type switch
+        {
+            Grid.NeighborType.North => Grid.NeighborType.NorthWest,
+            Grid.NeighborType.NorthWest => Grid.NeighborType.West,
+            Grid.NeighborType.West => Grid.NeighborType.SouthWest,
+            Grid.NeighborType.SouthWest => Grid.NeighborType.South,
+            Grid.NeighborType.South => Grid.NeighborType.SouthEast,
+            Grid.NeighborType.SouthEast => Grid.NeighborType.East,
+            Grid.NeighborType.East => Grid.NeighborType.NorthEast,
+            Grid.NeighborType.NorthEast => Grid.NeighborType.North,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
+
+    internal static Grid.NeighborType TurnRight(this Grid.NeighborType type)
+    {
+        return type switch
+        {
+            Grid.NeighborType.North => Grid.NeighborType.NorthEast,
+            Grid.NeighborType.NorthEast => Grid.NeighborType.East,
+            Grid.NeighborType.East => Grid.NeighborType.SouthEast,
+            Grid.NeighborType.SouthEast => Grid.NeighborType.South,
+            Grid.NeighborType.South => Grid.NeighborType.SouthWest,
+            Grid.NeighborType.SouthWest => Grid.NeighborType.West,
+            Grid.NeighborType.West => Grid.NeighborType.NorthWest,
+            Grid.NeighborType.NorthWest => Grid.NeighborType.North,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
     }

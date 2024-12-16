@@ -11,21 +11,21 @@
     <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1"/>
   </ItemGroup>
 
-  <!--  <PropertyGroup Condition="'$(Configuration)' == 'Release'">-->
-  <!--    <PublishAot>true</PublishAot>-->
-  <!--    <OptimizationPreference>Speed</OptimizationPreference>-->
-  <!--    <DebuggerSupport>false</DebuggerSupport>-->
-  <!--    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>-->
-  <!--    <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>-->
-  <!--    <EventSourceSupport>false</EventSourceSupport>-->
-  <!--    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>-->
-  <!--    <InvariantGlobalization>true</InvariantGlobalization>-->
-  <!--    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>-->
-  <!--    <MetricsSupport>false</MetricsSupport>-->
-  <!--    <StackTraceSupport>false</StackTraceSupport>-->
-  <!--    <UseNativeHttpHandler>true</UseNativeHttpHandler>-->
-  <!--    <UseSystemResourceKeys>true</UseSystemResourceKeys>-->
-  <!--    <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
-  <!--  </PropertyGroup>-->
+  <!--    <PropertyGroup Condition="'$(Configuration)' == 'Release'">-->
+  <!--      <PublishAot>true</PublishAot>-->
+  <!--      <OptimizationPreference>Speed</OptimizationPreference>-->
+  <!--      <DebuggerSupport>false</DebuggerSupport>-->
+  <!--      <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>-->
+  <!--      <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>-->
+  <!--      <EventSourceSupport>false</EventSourceSupport>-->
+  <!--      <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>-->
+  <!--      <InvariantGlobalization>true</InvariantGlobalization>-->
+  <!--      <MetadataUpdaterSupport>false</MetadataUpdaterSupport>-->
+  <!--      <MetricsSupport>false</MetricsSupport>-->
+  <!--      <StackTraceSupport>false</StackTraceSupport>-->
+  <!--      <UseNativeHttpHandler>true</UseNativeHttpHandler>-->
+  <!--      <UseSystemResourceKeys>true</UseSystemResourceKeys>-->
+  <!--      <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>-->
+  <!--    </PropertyGroup>-->
 
 </Project>
