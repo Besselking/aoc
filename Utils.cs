@@ -89,14 +89,17 @@ public static class Utils
     internal static int ParseAsInt(this ReadOnlySpan<char> span) => int.Parse(span);
     internal static long ParseAsLong(this ReadOnlySpan<char> span) => long.Parse(span);
     internal static uint ParseAsUint(this ReadOnlySpan<char> span) => uint.Parse(span);
+    internal static ulong ParseAsUlong(this ReadOnlySpan<char> span) => ulong.Parse(span);
 
-    internal static uint[] ParseAsUints(this MemoryExtensions.SpanSplitEnumerator<char> enumerator,
+    internal static byte ParseAsByte(this ReadOnlySpan<char> span) => byte.Parse(span);
+
+    internal static byte[] ParseAsBytes(this MemoryExtensions.SpanSplitEnumerator<char> enumerator,
         ReadOnlySpan<char> span)
     {
-        List<uint> result = new List<uint>();
+        List<byte> result = new List<byte>();
         foreach (Range range in enumerator)
         {
-            result.Add(span[range].ParseAsUint());
+            result.Add(span[range].ParseAsByte());
         }
 
         return result.ToArray();
