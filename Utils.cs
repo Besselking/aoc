@@ -88,6 +88,19 @@ public static class Utils
 
     internal static int ParseAsInt(this ReadOnlySpan<char> span) => int.Parse(span);
     internal static long ParseAsLong(this ReadOnlySpan<char> span) => long.Parse(span);
+    internal static uint ParseAsUint(this ReadOnlySpan<char> span) => uint.Parse(span);
+
+    internal static uint[] ParseAsUints(this MemoryExtensions.SpanSplitEnumerator<char> enumerator,
+        ReadOnlySpan<char> span)
+    {
+        List<uint> result = new List<uint>();
+        foreach (Range range in enumerator)
+        {
+            result.Add(span[range].ParseAsUint());
+        }
+
+        return result.ToArray();
+    }
 
     internal static long GetLong(this Match match, string group) => match.Groups[group].ValueSpan.ParseAsLong();
 

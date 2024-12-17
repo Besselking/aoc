@@ -6,14 +6,14 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 45);
-        Run("test2", 64);
+        Run("test", 4635635210);
+        // Run("test2", 64);
         Run("input");
     }
 
     private static void Run(string type, long? expected = null)
     {
-        var input = File.ReadAllLines($"{type}-d16.txt");
+        var input = File.ReadAllLines($"inputs/{type}-d17.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -32,107 +32,101 @@ public static partial class Program
     private static long GetOutput(string[] input)
     {
         long sum = 0;
+        uint ra = input[0].AsSpan("Register A: ".Length).ParseAsUint();
+        uint rb = input[1].AsSpan("Register B: ".Length).ParseAsUint();
+        uint rc = input[2].AsSpan("Register C: ".Length).ParseAsUint();
 
-        Grid grid = new Grid(input);
+        var programSpan = input[4].AsSpan("Program: ".Length);
+        uint[] instructions = programSpan.Split(',').ParseAsUints(programSpan);
 
-        var start = grid.IndexOf('S');
-        var endTile = grid.IndexOf('E');
-        Grid.NeighborType startDir = Grid.NeighborType.East;
+        List<uint> output = new List<uint>();
 
-        PriorityQueue<((int row, int column) pos, Grid.NeighborType direction, List<(int row, int col)> path), int>
-            frontier = new();
-        frontier.Enqueue((start, startDir, [start]), 0);
-        Dictionary<((int row, int column) pos, Grid.NeighborType direction), int> minScores = new();
-        long bestScore = long.MaxValue;
-        List<List<(int row, int column)>> bestPaths = new();
-
-        while (frontier.Count > 0)
+        for (uint i = 0; i + 1 < instructions.Length;)
         {
-            frontier.TryDequeue(out var node, out var cost);
-            if (cost > bestScore)
+            uint opcode = instructions[i];
+            uint operand = instructions[i + 1];
+
+            switch (opcode)
             {
-                continue;
+                case 0: // adv, A division
+                {
+                    uint numerator = ra;
+                    uint combo = GetComboOperand(operand);
+                    uint denominator = (uint)Math.Pow(2, combo);
+                    ra = numerator / denominator;
+                    break;
+                }
+                case 1: // bxl, B xor
+                {
+                    rb ^= operand;
+                    break;
+                }
+                case 2: // bst, B modulo
+                {
+                    uint combo = GetComboOperand(operand);
+                    rb = combo % 8;
+                    break;
+                }
+                case 3: // jnz, jump not zero
+                {
+                    if (ra == 0) break;
+                    i = operand;
+                    continue;
+                }
+                case 4: // bxc, B xor C
+                {
+                    rb ^= rc;
+                    break;
+                }
+                case 5: //out
+                {
+                    uint combo = GetComboOperand(operand);
+                    Output(combo % 8);
+                    break;
+                }
+                case 6: // bdv, B division
+                {
+                    uint numerator = ra;
+                    uint combo = GetComboOperand(operand);
+                    uint denominator = (uint)Math.Pow(2, combo);
+                    rb = numerator / denominator;
+                    break;
+                }
+                case 7: // cdv, C division
+                {
+                    uint numerator = ra;
+                    uint combo = GetComboOperand(operand);
+                    uint denominator = (uint)Math.Pow(2, combo);
+                    rc = numerator / denominator;
+                    break;
+                }
             }
 
-            if (node.pos == endTile)
-            {
-                if (cost == bestScore)
-                {
-                    bestPaths.Add(node.path);
-                }
-                else
-                {
-                    bestPaths = [node.path];
-                    bestScore = cost;
-                }
-
-                continue;
-            }
-
-            {
-                // forward
-                var forward = grid.GetNeighborPos(node.pos, node.direction);
-                if (grid[forward] is '#')
-                {
-                    //skip
-                }
-                else
-                {
-                    var forwardCost = cost + 1;
-                    if (!minScores.TryGetValue((forward, node.direction), out var score)
-                        || score >= forwardCost)
-                    {
-                        minScores[(forward, node.direction)] = forwardCost;
-                        frontier.Enqueue((forward, node.direction, [..node.path, forward]), forwardCost);
-                    }
-                }
-            }
-
-            {
-                // left turn
-                Grid.NeighborType leftDir = node.direction.TurnLeft().TurnLeft();
-                var left = grid.GetNeighborPos(node.pos, leftDir);
-                var leftCost = cost + 1001;
-                if (grid[left] is '#')
-                {
-                    //skip
-                }
-                else if (!minScores.TryGetValue((left, leftDir), out var score)
-                         || score >= leftCost
-                        )
-                {
-                    minScores[(left, leftDir)] = leftCost;
-                    frontier.Enqueue((left, leftDir, [..node.path, left]), leftCost);
-                }
-            }
-            {
-                // right turn
-                Grid.NeighborType rightDir = node.direction.TurnRight().TurnRight();
-                var right = grid.GetNeighborPos(node.pos, rightDir);
-                var rightCost = cost + 1001;
-                if (grid[right] is '#')
-                {
-                    //skip
-                }
-                else if (!minScores.TryGetValue((right, rightDir), out var score)
-                         || score >= rightCost)
-                {
-                    minScores[(right, rightDir)] = rightCost;
-                    frontier.Enqueue((right, rightDir, [..node.path, right]), rightCost);
-                }
-            }
+            i += 2;
         }
 
-        sum = 0;
-
-        foreach (var path in bestPaths.SelectMany(n => n).Distinct())
-        {
-            grid[path] = 'O';
-            sum++;
-        }
-
-        Console.WriteLine(grid.ToString());
+        sum = String.Join("", output.Select(x => x.ToString())).AsSpan().ParseAsLong();
 
         return sum;
+
+        uint GetComboOperand(uint combo)
+        {
+            return combo switch
+            {
+                <= 3 => combo,
+                4 => ra,
+                5 => rb,
+                6 => rc,
+                7 => throw new InvalidOperationException("invalid program 7 is reserved"),
+                _ => throw new InvalidOperationException($"invalid program, not an operator '{combo}'"),
+            };
+        }
+
+        void Output(uint value)
+        {
+            if (output.Count != 0) Console.Write(',');
+            Console.Write(value);
+            output.Add(value);
+        }
     }
 }
