@@ -8,7 +8,7 @@ public static partial class Program
     {
         Bounds = new(7, 7);
         AfterNBytes = 12;
-        Run("test", 22);
+        Run("test", 21);
         // Run("test2", 64);
         Bounds = new(71, 71);
         AfterNBytes = 1024;
@@ -42,16 +42,41 @@ public static partial class Program
 
         int[][] bytes = input.Select(s => s.Split(',').Select(int.Parse).ToArray()).ToArray();
 
-
         char[] gridData = new char[(Bounds.X) * (Bounds.Y)];
         Array.Fill(gridData, '.');
         Grid grid = new(gridData, Bounds.X, Bounds.Y);
 
-        foreach (var b in bytes.Take(AfterNBytes))
-        {
-            grid[b[1], b[0]] = '#';
-        }
+        int count = AfterNBytes;
 
+        do
+        {
+            foreach (var b in bytes.AsSpan(0, count))
+            {
+                grid[b[1], b[0]] = '#';
+            }
+
+            sum = GetCost(grid);
+
+            if (sum != 0)
+            {
+                count++;
+            }
+            else
+            {
+                Console.WriteLine(count);
+                Console.Write(bytes[count - 1][0]);
+                Console.Write(',');
+                Console.WriteLine(bytes[count - 1][1]);
+                break;
+            }
+        } while (count < bytes.Length);
+
+        return count;
+    }
+
+    private static long GetCost(Grid grid)
+    {
+        long sum = 0;
         var endPos = (Bounds.X - 1, Bounds.Y - 1);
         PriorityQueue<((int row, int column) pos, Grid.NeighborType direction), int> frontier = new();
         frontier.Enqueue(((0, 0), Grid.NeighborType.East), 0);
