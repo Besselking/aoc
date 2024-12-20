@@ -8,6 +8,9 @@ public static partial class Program
     {
         Run("test", 0);
         Run("input");
+        // 541314 low
+        // 1042544 high
+        // 999556
     }
 
     private static void Run(string type, long? expected = null)
@@ -34,7 +37,7 @@ public static partial class Program
 
         Grid grid = new Grid(input);
 
-        int threshhold = 100;
+        const int threshold = 100;
 
         var nPathtiles = grid.Count('.');
         var pathTiles = new (int row, int col)[nPathtiles + 2];
@@ -72,19 +75,15 @@ public static partial class Program
                 var left = pathTiles[i];
                 var right = pathTiles[j];
 
-                if (Math.Abs(left.row - right.row)
-                    + Math.Abs(left.col - right.col) == 2)
+                var cheat = Math.Abs(left.row - right.row)
+                            + Math.Abs(left.col - right.col);
+                if (cheat <= 20)
                 {
-                    var middle = ((left.row + right.row) / 2, (left.col + right.col) / 2);
-                    if (grid[middle] is '#')
-                    {
-                        var diff = Math.Abs(i - j) - 2;
+                    var diff = Math.Abs(i - j) - cheat;
 
-                        if (diff >= threshhold)
-                        {
-                            sum++;
-                        }
-                        // Console.WriteLine($"left {i} {left}, right {j} {right}, middle {middle}, diff {diff}");
+                    if (diff >= threshold)
+                    {
+                        sum++;
                     }
                 }
             }
