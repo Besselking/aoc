@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace aoc;
@@ -185,5 +186,32 @@ public static class Utils
             Grid.NeighborType.NorthWest => Grid.NeighborType.North,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };
+    }
+
+    public static IEnumerable<TResult> DeconstructSelectMany<TSource, TResult>(
+        this IEnumerable<(TSource, TSource)> source,
+        Func<TSource, TSource, IEnumerable<TResult>> selector)
+    {
+        return source.SelectMany(tup => selector(tup.Item1, tup.Item2));
+    }
+
+    public static IEnumerable<TResult> DeconstructSelect<TSource, TResult>(
+        this IEnumerable<(TSource, TSource)> source,
+        Func<TSource, TSource, TResult> selector)
+    {
+        return source.Select(tup => selector(tup.Item1, tup.Item2));
+    }
+
+    public static IEnumerable<(T, T)> Window<T>(this IEnumerable<T> input)
+    {
+        using var enumerator = input.GetEnumerator();
+        Debug.Assert(enumerator.MoveNext());
+        T last = enumerator.Current;
+        while (enumerator.MoveNext())
+        {
+            T current = enumerator.Current;
+            yield return (last, current);
+            last = current;
+        }
     }
 }
