@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using QuikGraph;
 
 namespace aoc;
@@ -7,7 +8,7 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 7);
+        Run("test", 4);
         Run("input");
     }
 
@@ -42,40 +43,49 @@ public static partial class Program
             graph.AddVerticesAndEdge(new(left, right));
         }
 
-        HashSet<HashSet<string>> visited = new(new SetComparer<string>());
-
-        foreach (var edge in graph.Edges.Where(e
-                     => e.Source.StartsWith('t')
-                        || e.Target.StartsWith('t')))
+        GetMaxClique(graph, (res) =>
         {
-            var source = edge.Source;
-            var target = edge.Target;
-
-            foreach (var adjacent in graph.AdjacentVertices(source).Except([target])
-                         .Intersect(graph.AdjacentVertices(target).Except([source])))
+            if (res.Count > sum)
             {
-                if (visited.Add([source, target, adjacent]))
-                {
-                    // Console.WriteLine($"{source}, {target}, {adjacent}");
-                }
+                var password = String.Join(',', res.OrderBy(x => x));
+                Console.WriteLine(password);
+                sum = res.Count;
             }
-        }
+        });
 
-        return visited.Count;
+
+        return sum;
     }
 
-    public class SetComparer<T> : IEqualityComparer<ISet<T>>
+    public static void GetMaxClique(UndirectedGraph<string, Edge<string>> graph,
+        Action<ImmutableHashSet<string>> report)
     {
-        public bool Equals(ISet<T>? x, ISet<T>? y)
+        ImmutableHashSet<string> R = [];
+        ImmutableHashSet<string> X = [];
+        ImmutableHashSet<string> P = [..graph.Vertices];
+
+        GetMaxClique(graph, R, P, X, report);
+    }
+
+    public static void GetMaxClique(
+        UndirectedGraph<string, Edge<string>> graph,
+        ImmutableHashSet<string> R,
+        ImmutableHashSet<string> P,
+        ImmutableHashSet<string> X,
+        Action<ImmutableHashSet<string>> report)
+    {
+        if (P.Count == 0 && X.Count == 0)
         {
-            return x.SetEquals(y);
+            report(R);
+            return;
         }
 
-        public int GetHashCode(ISet<T> obj)
+        foreach (var v in P)
         {
-            return obj.OrderBy(o => o)
-                .Select(o => o.GetHashCode())
-                .Aggregate(0, (current, o) => current ^ o);
+            var Nv = graph.AdjacentVertices(v);
+            GetMaxClique(graph, R.Union([v]), P.Intersect(Nv), X.Intersect(Nv), report);
+            P = P.Remove(v);
+            X = X.Add(v);
         }
     }
 }
