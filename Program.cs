@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using QuikGraph;
 
 namespace aoc;
 
@@ -6,13 +7,13 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 23);
+        Run("test", 7);
         Run("input");
     }
 
-    private static void Run(string type, ulong? expected = null)
+    private static void Run(string type, long? expected = null)
     {
-        var input = File.ReadAllLines($"inputs/{type}-d22.txt");
+        var input = File.ReadAllLines($"inputs/{type}-d23.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -28,74 +29,53 @@ public static partial class Program
 
     // Implementation
 
-    private static ulong GetOutput(string[] input)
+    private static long GetOutput(string[] input)
     {
-        ulong sum = 0;
+        long sum = 0;
 
-        Dictionary<ulong, Dictionary<(int, int, int, int), int>> output = new();
+        var graph = new UndirectedGraph<string, Edge<string>>();
 
         foreach (var line in input)
         {
-            var secretNumber = ulong.Parse(line);
-            var startNumber = secretNumber;
-            var currentDict = output[startNumber] = new();
+            string left = line[..2];
+            string right = line[3..];
+            graph.AddVerticesAndEdge(new(left, right));
+        }
 
-            var price = (int)(secretNumber % 10);
+        HashSet<HashSet<string>> visited = new(new SetComparer<string>());
 
-            (int a, int b, int c, int d) sequence = (0, 0, 0, 0);
+        foreach (var edge in graph.Edges.Where(e
+                     => e.Source.StartsWith('t')
+                        || e.Target.StartsWith('t')))
+        {
+            var source = edge.Source;
+            var target = edge.Target;
 
-            for (int i = 0; i < 2000; i++)
+            foreach (var adjacent in graph.AdjacentVertices(source).Except([target])
+                         .Intersect(graph.AdjacentVertices(target).Except([source])))
             {
-                // mult 64
-                var mult64 = secretNumber << 6;
-                // mix
-                secretNumber ^= mult64;
-                // prune
-                secretNumber %= 16777216;
-
-                // div 32
-                var div32 = secretNumber >> 5;
-                // mix
-                secretNumber ^= div32;
-                // prune
-                secretNumber %= 16777216;
-
-                // mult 2048
-                var mult2048 = secretNumber << 11;
-                // mix
-                secretNumber ^= mult2048;
-                // prune
-                secretNumber %= 16777216;
-
-                int newPrice = (int)(secretNumber % 10);
-                var change = newPrice - price;
-                price = newPrice;
-
-                sequence = (sequence.b, sequence.c, sequence.d, change);
-                if (i > 3)
+                if (visited.Add([source, target, adjacent]))
                 {
-                    currentDict.TryAdd(sequence, newPrice);
+                    // Console.WriteLine($"{source}, {target}, {adjacent}");
                 }
             }
-
-            Console.WriteLine($"{startNumber}: {secretNumber}");
-            sum += secretNumber;
         }
 
-        var maxGroup = output
-            .SelectMany(g => g.Value)
-            .GroupBy(g => g.Key, g => g.Value)
-            .MaxBy(g => g.Sum());
+        return visited.Count;
+    }
 
-        sum = (ulong)maxGroup.Sum();
-        Console.WriteLine($"{maxGroup.Key}: {sum}");
-
-        foreach (var group in output)
+    public class SetComparer<T> : IEqualityComparer<ISet<T>>
+    {
+        public bool Equals(ISet<T>? x, ISet<T>? y)
         {
-            group.Value.TryGetValue(maxGroup.Key, out var price);
-            Console.WriteLine($"{group.Key}: {price}");
+            return x.SetEquals(y);
         }
 
-        return sum;
+        public int GetHashCode(ISet<T> obj)
+        {
+            return obj.OrderBy(o => o)
+                .Select(o => o.GetHashCode())
+                .Aggregate(0, (current, o) => current ^ o);
+        }
     }
 }
