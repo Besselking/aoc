@@ -1,6 +1,5 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
-using QuikGraph;
+﻿using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace aoc;
 
@@ -8,13 +7,14 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 4);
+        Run("test2", 4);
+        Run("test", 2024);
         Run("input");
     }
 
     private static void Run(string type, long? expected = null)
     {
-        var input = File.ReadAllLines($"inputs/{type}-d23.txt");
+        var input = File.ReadAllLines($"inputs/{type}-d24.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -30,62 +30,110 @@ public static partial class Program
 
     // Implementation
 
-    private static long GetOutput(string[] input)
+    private static long GetOutput(ReadOnlySpan<string> input)
     {
         long sum = 0;
 
-        var graph = new UndirectedGraph<string, Edge<string>>();
+        int endOfInputs = input.IndexOf("");
+        var inputsSpan = input[..endOfInputs];
+        var gatesSpan = input[(endOfInputs + 1)..];
 
-        foreach (var line in input)
+        Dictionary<string, bool> inputs = new Dictionary<string, bool>(inputsSpan.Length);
+
+        foreach (var wireInput in inputsSpan)
         {
-            string left = line[..2];
-            string right = line[3..];
-            graph.AddVerticesAndEdge(new(left, right));
+            var key = wireInput[..3];
+            var value = wireInput[5] == '1';
+            inputs.Add(key, value);
         }
 
-        GetMaxClique(graph, (res) =>
-        {
-            if (res.Count > sum)
-            {
-                var password = String.Join(',', res.OrderBy(x => x));
-                Console.WriteLine(password);
-                sum = res.Count;
-            }
-        });
+        Dictionary<string, (string, Op, string)> gates = new Dictionary<string, (string, Op, string)>();
 
+        foreach (var gate in gatesSpan)
+        {
+            if (gate.Length == 17)
+            {
+                // or
+                string left = gate[..3];
+                string right = gate[7..10];
+                string result = gate[14..];
+
+                Op op = Op.Or;
+
+                gates.Add(result, (left, op, right));
+            }
+            else
+            {
+                // and / xor
+                string left = gate[..3];
+                string right = gate[8..11];
+                string result = gate[15..];
+
+                Op op = gate[4] == 'A' ? Op.And : Op.Xor;
+                gates.Add(result, (left, op, right));
+            }
+        }
+
+        Expressions.Clear();
+
+        foreach (var register in gates.Keys.Where(key => key.StartsWith('z')).OrderDescending())
+        {
+            Expression expr = BuildExpression(register, gates, inputs);
+            bool result = Expression.Lambda<Func<bool>>(expr).Compile()();
+            Console.WriteLine($"{register}:\t{result}");
+            if (result)
+            {
+                sum |= 1;
+            }
+
+            sum <<= 1;
+        }
+
+        sum >>= 1;
 
         return sum;
     }
 
-    public static void GetMaxClique(UndirectedGraph<string, Edge<string>> graph,
-        Action<ImmutableHashSet<string>> report)
-    {
-        ImmutableHashSet<string> R = [];
-        ImmutableHashSet<string> X = [];
-        ImmutableHashSet<string> P = [..graph.Vertices];
+    private static Dictionary<string, Expression> Expressions = new Dictionary<string, Expression>();
 
-        GetMaxClique(graph, R, P, X, report);
+    private static Expression BuildExpression(string register,
+        Dictionary<string, (string left, Op op, string right)> gates, Dictionary<string, bool> inputs)
+    {
+        if (Expressions.TryGetValue(register, out var expression)) return expression;
+
+        if (gates.TryGetValue(register, out var result))
+        {
+            expression = result.op switch
+            {
+                Op.And => Expression.And(
+                    BuildExpression(result.left, gates, inputs),
+                    BuildExpression(result.right, gates, inputs)),
+                Op.Or => Expression.Or(
+                    BuildExpression(result.left, gates, inputs),
+                    BuildExpression(result.right, gates, inputs)),
+                Op.Xor => Expression.ExclusiveOr(
+                    BuildExpression(result.left, gates, inputs),
+                    BuildExpression(result.right, gates, inputs)),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+        else if (inputs.TryGetValue(register, out var input))
+        {
+            expression = Expression.Constant(input);
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown register '{register}'");
+        }
+
+        Expressions.Add(register, expression);
+        return expression;
     }
 
-    public static void GetMaxClique(
-        UndirectedGraph<string, Edge<string>> graph,
-        ImmutableHashSet<string> R,
-        ImmutableHashSet<string> P,
-        ImmutableHashSet<string> X,
-        Action<ImmutableHashSet<string>> report)
+    enum Op
     {
-        if (P.Count == 0 && X.Count == 0)
-        {
-            report(R);
-            return;
-        }
-
-        foreach (var v in P)
-        {
-            var Nv = graph.AdjacentVertices(v);
-            GetMaxClique(graph, R.Union([v]), P.Intersect(Nv), X.Intersect(Nv), report);
-            P = P.Remove(v);
-            X = X.Add(v);
-        }
+        And,
+        Or,
+        Xor
     }
 }
