@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ExpressionTreeToString" Version="3.4.71"/>
     <PackageReference Include="MathNet.Numerics" Version="6.0.0-beta1"/>
     <PackageReference Include="QuikGraph" Version="2.5.0"/>
   </ItemGroup>

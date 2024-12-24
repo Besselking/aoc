@@ -7,8 +7,8 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test2", 4);
-        Run("test", 2024);
+        // Run("test2", 4);
+        // Run("test", 2024);
         Run("input");
     }
 
@@ -38,16 +38,28 @@ public static partial class Program
         var inputsSpan = input[..endOfInputs];
         var gatesSpan = input[(endOfInputs + 1)..];
 
-        Dictionary<string, bool> inputs = new Dictionary<string, bool>(inputsSpan.Length);
+        bool[] x = new bool[45];
+        bool[] y = new bool[45];
+
+        int ix = 0;
+        int iy = 0;
 
         foreach (var wireInput in inputsSpan)
         {
             var key = wireInput[..3];
             var value = wireInput[5] == '1';
-            inputs.Add(key, value);
+
+            if (key.StartsWith('x'))
+            {
+                x[ix++] = value;
+            }
+            else
+            {
+                y[iy++] = value;
+            }
         }
 
-        Dictionary<string, (string, Op, string)> gates = new Dictionary<string, (string, Op, string)>();
+        Dictionary<string, (string left, Op op, string right)> gates = new Dictionary<string, (string, Op, string)>();
 
         foreach (var gate in gatesSpan)
         {
@@ -76,11 +88,41 @@ public static partial class Program
 
         Expressions.Clear();
 
+        var xP = Expression.Parameter(typeof(bool[]), "x");
+        var yP = Expression.Parameter(typeof(bool[]), "y");
+
+        // wcb <-> z34
+        var wcb = gates["wcb"];
+        var z34 = gates["z34"];
+        gates["z34"] = wcb;
+        gates["wcb"] = z34;
+
+        // mkk <-> z10
+        var mkk = gates["mkk"];
+        var z10 = gates["z10"];
+        gates["z10"] = mkk;
+        gates["mkk"] = z10;
+
+        // qbw <-> z14
+        var qbw = gates["qbw"];
+        var z14 = gates["z14"];
+        gates["z14"] = qbw;
+        gates["qbw"] = z14;
+
+        // wjb <-> cvp
+        var wjb = gates["wjb"];
+        var cvp = gates["cvp"];
+        gates["cvp"] = wjb;
+        gates["wjb"] = cvp;
+
         foreach (var register in gates.Keys.Where(key => key.StartsWith('z')).OrderDescending())
         {
-            Expression expr = BuildExpression(register, gates, inputs);
-            bool result = Expression.Lambda<Func<bool>>(expr).Compile()();
-            Console.WriteLine($"{register}:\t{result}");
+            Expression expr = BuildExpression(register, gates, xP, yP).expr;
+            var lambda = Expression.Lambda<Func<bool[], bool[], bool>>(expr, xP, yP);
+            // Console.WriteLine($"{register}: {expr.ToString("C#")}");
+            var compiled = lambda.Compile();
+            bool result = compiled(x, y);
+            // Console.WriteLine($"{register}:\t{result}");
             if (result)
             {
                 sum |= 1;
@@ -91,42 +133,73 @@ public static partial class Program
 
         sum >>= 1;
 
+        Console.WriteLine($"s: {sum}: {sum:B}");
+
         return sum;
     }
 
-    private static Dictionary<string, Expression> Expressions = new Dictionary<string, Expression>();
+    private static Dictionary<string, (Expression, int)> Expressions = new();
 
-    private static Expression BuildExpression(string register,
-        Dictionary<string, (string left, Op op, string right)> gates, Dictionary<string, bool> inputs)
+    private static (Expression expr, int depth) BuildExpression(string register,
+        Dictionary<string, (string left, Op op, string right)> gates,
+        ParameterExpression xP,
+        ParameterExpression yP)
     {
         if (Expressions.TryGetValue(register, out var expression)) return expression;
 
         if (gates.TryGetValue(register, out var result))
         {
-            expression = result.op switch
+            var buildExpressionLeft = BuildExpression(result.left, gates, xP, yP);
+            var buildExpressionRight = BuildExpression(result.right, gates, xP, yP);
+            switch (result.op)
             {
-                Op.And => Expression.And(
-                    BuildExpression(result.left, gates, inputs),
-                    BuildExpression(result.right, gates, inputs)),
-                Op.Or => Expression.Or(
-                    BuildExpression(result.left, gates, inputs),
-                    BuildExpression(result.right, gates, inputs)),
-                Op.Xor => Expression.ExclusiveOr(
-                    BuildExpression(result.left, gates, inputs),
-                    BuildExpression(result.right, gates, inputs)),
-                _ => throw new ArgumentOutOfRangeException()
-            };
-        }
-        else if (inputs.TryGetValue(register, out var input))
-        {
-            expression = Expression.Constant(input);
+                case Op.And:
+                    expression = GetMaxExpression(Expression.And, buildExpressionLeft, buildExpressionRight);
+                    break;
+                case Op.Or:
+                    expression = GetMaxExpression(Expression.Or, buildExpressionLeft, buildExpressionRight);
+                    break;
+                case Op.Xor:
+                    expression = GetMaxExpression(Expression.ExclusiveOr, buildExpressionLeft, buildExpressionRight);
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
         else
         {
-            throw new InvalidOperationException($"Unknown register '{register}'");
+            if (register.StartsWith('x'))
+            {
+                expression = (Expression.ArrayAccess(xP, Expression.Constant(int.Parse(register.AsSpan(1)))), 1);
+            }
+            else
+            {
+                expression = (Expression.ArrayAccess(yP, Expression.Constant(int.Parse(register.AsSpan(1)))), 1);
+            }
         }
 
         Expressions.Add(register, expression);
+        return expression;
+    }
+
+    private static (Expression, int) GetMaxExpression(
+        Func<Expression, Expression, BinaryExpression> func,
+        (Expression expr, int depth) buildExpressionLeft,
+        (Expression expr, int depth) buildExpressionRight)
+    {
+        (Expression, int) expression;
+        if (buildExpressionLeft.depth > buildExpressionRight.depth)
+        {
+            expression = (func(buildExpressionRight.expr, buildExpressionLeft.expr),
+                buildExpressionLeft.depth + 1);
+        }
+        else
+        {
+            expression = (func(buildExpressionLeft.expr, buildExpressionRight.expr),
+                buildExpressionRight.depth + 1);
+        }
+
         return expression;
     }
 
