@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace aoc;
 
@@ -7,14 +6,14 @@ public static partial class Program
 {
     public static void Main()
     {
-        // Run("test2", 4);
         Run("test", 3);
+        // Run("test", 2024);
         Run("input");
     }
 
     private static void Run(string type, long? expected = null)
     {
-        var input = File.ReadAllLines($"inputs/{type}-d25.txt");
+        var input = File.ReadAllLines($"Inputs/2025/{type}-01.txt");
         var output = GetOutput(input);
 
         Console.Write($"{type}:\t{output}");
@@ -33,51 +32,22 @@ public static partial class Program
     private static long GetOutput(ReadOnlySpan<string> input)
     {
         long sum = 0;
+        int dial = 50;
 
-        List<uint> keys = new List<uint>();
-        List<uint> holes = new List<uint>();
-
-        foreach (var range in input.Split(""))
+        foreach (var line in input)
         {
-            var keyOrHole = input[range];
+            if (dial == 0) sum++;
+            char dir = line[0];
+            int rot = line.AsSpan()[1..].ParseAsInt();
 
-            uint bitmap = 0;
-            foreach (var line in keyOrHole)
+            dial += dir switch
             {
-                foreach (var ch in line)
-                {
-                    if (ch is '#')
-                    {
-                        bitmap |= 1;
-                    }
+                'L' => -rot,
+                'R' => rot,
+            };
 
-                    bitmap <<= 1;
-                }
-            }
-
-            bitmap >>= 1;
-
-            if ((bitmap & 1) == 1)
-            {
-                keys.Add(bitmap);
-            }
-            else
-            {
-                holes.Add(bitmap);
-            }
+            dial %= 100;
         }
-
-        foreach (var key in CollectionsMarshal.AsSpan(keys))
-        {
-            foreach (var hole in CollectionsMarshal.AsSpan(holes))
-            {
-                if ((key & hole) == 0)
-                {
-                    sum++;
-                }
-            }
-        }
-
 
         return sum;
     }
