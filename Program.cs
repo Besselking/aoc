@@ -6,7 +6,7 @@ public static partial class Program
 {
     public static void Main()
     {
-        Run("test", 21);
+        Run("test", 40);
         // Run("test", 2024);
         Run("input");
     }
@@ -35,33 +35,42 @@ public static partial class Program
 
         Grid grid = new(input.ToArray());
 
-        for (var row = 0; row < grid.Rows - 1; row++)
-        {
-            for (var col = 0; col < grid.Cols; col++)
-            {
-                var cell = grid[row, col];
-                if (cell == '.') continue;
-                if (cell == 'S')
-                {
-                    grid[row + 1, col] = '|';
-                }
-                else if (cell == '^' && grid[row - 1, col] == '|')
-                {
-                    sum++;
-                    grid[row, col - 1] = '|';
-                    grid[row, col + 1] = '|';
-                    grid[row + 1, col - 1] = '|';
-                    grid[row + 1, col + 1] = '|';
-                }
-                else if (cell == '|' && grid[row + 1, col] == '.')
-                {
-                    grid[row + 1, col] = '|';
-                }
-            }
-
-            Console.WriteLine(grid.ToString());
-        }
+        var (row, col) = grid.IndexOf('S');
+        Dictionary<(int row, int col), long> results = new();
+        sum += Beam(results, grid, row + 1, col);
 
         return sum;
+    }
+
+    private static long Beam(Dictionary<(int row, int col), long> results, Grid grid, int row, int col)
+    {
+        while (true)
+        {
+            if (row == grid.Rows)
+            {
+                return 1;
+            }
+
+            var cell = grid[row, col];
+            switch (cell)
+            {
+                case '.':
+                    row += 1;
+                    continue;
+                case '^':
+                    if (results.TryGetValue((row, col), out var result))
+                    {
+                        return result;
+                    }
+
+                    var newResult = Beam(results, grid, row, col + 1) + Beam(results, grid, row, col - 1);
+                    results.Add((row, col), newResult);
+                    return newResult;
+                default:
+                    throw new InvalidOperationException($"unkown cell: {cell}");
+            }
+
+            break;
+        }
     }
 }
